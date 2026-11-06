@@ -1,10 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:passly/common/widgets/common_tag_chip.dart';
 import 'package:passly/common/widgets/encounter_loading_skeleton.dart';
 import 'package:passly/common/widgets/info_badge_card.dart';
 import 'package:passly/common/widgets/passly_icon.dart';
+import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
@@ -486,12 +488,12 @@ class _InfoCards extends StatelessWidget {
   }
 }
 
-/// 共通タグのカード。タグが増えても見出しは 1 行のまま，
-/// チップだけカードの中で折り返し，カードの高さが伸びる。
-/// 共通タグのカード（Figma node 1950:1612「B案」）。
+/// 共通タグのカード。共通タグはどれも自分と同じタグなので，
+/// 緑のふちのステッカー＋下にタグ名で並べる。
 ///
-/// タグが多いと下の「話のネタ」がボタンに埋もれるので、最初の
-/// [_maxVisible] 個だけ出し、残りは「+N」にまとめる。「+N」を押すと全部出す。
+/// タグが多いと下の「話のネタ」がボタンに埋もれるので、最初は 1 行に
+/// 収まる分だけ出し、残りは「+N すべて見る」にまとめる。押すと全部出す。
+/// 1 行に入る数は画面の幅で変わる（小さい Android でもはみ出さない）。
 class _CommonTagCard extends StatefulWidget {
   final List<String> tags;
 
@@ -502,15 +504,14 @@ class _CommonTagCard extends StatefulWidget {
 }
 
 class _CommonTagCardState extends State<_CommonTagCard> {
-  static const int _maxVisible = 3;
+  static const double _stickerSize = 44;
+  static const double _itemWidth = 62;
 
   bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final tags = widget.tags;
-    final collapsed = !_expanded && tags.length > _maxVisible;
-    final visible = collapsed ? tags.take(_maxVisible) : tags;
     return Container(
       constraints: const BoxConstraints(minHeight: 72),
       decoration: BoxDecoration(
@@ -536,27 +537,101 @@ class _CommonTagCardState extends State<_CommonTagCard> {
                     height: 16.8 / 14,
                   ),
                 ),
-                const SizedBox(height: 5),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    for (final t in visible) CommonTagChip.solid(t),
-                    if (collapsed)
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => setState(() => _expanded = true),
-                        child: CommonTagChip.more(
-                          '+${tags.length - _maxVisible}',
-                        ),
-                      ),
-                  ],
+                const SizedBox(height: 10),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final perRow = math.max(
+                      1,
+                      (constraints.maxWidth / _itemWidth).floor(),
+                    );
+                    final collapsed = !_expanded && tags.length > perRow;
+                    final visible = collapsed ? tags.take(perRow - 1) : tags;
+                    return Wrap(
+                      runSpacing: 10,
+                      children: [
+                        for (final t in visible)
+                          LabeledTagSticker(
+                            tag: t,
+                            size: _stickerSize,
+                            width: _itemWidth,
+                            same: true,
+                          ),
+                        if (collapsed)
+                          _MoreTagsSticker(
+                            count: tags.length - visible.length,
+                            size: _stickerSize,
+                            width: _itemWidth,
+                            onTap: () => setState(() => _expanded = true),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 共通タグの「+N すべて見る」。ステッカーと同じ大きさの枠に残りの数を出す。
+class _MoreTagsSticker extends StatelessWidget {
+  final int count;
+  final double size;
+  final double width;
+  final VoidCallback onTap;
+
+  const _MoreTagsSticker({
+    required this.count,
+    required this.size,
+    required this.width,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: width,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: size,
+              height: size,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: PasslyBg.surface,
+                borderRadius: BorderRadius.circular(size * 0.3),
+                border: Border.all(color: PasslyBrand.primary, width: 2),
+              ),
+              child: Text(
+                '+$count',
+                style: const TextStyle(
+                  color: PasslyBrand.primaryDark,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'すべて見る',
+              maxLines: 1,
+              style: TextStyle(
+                fontFamily: PasslyFont.family,
+                color: PasslyText.secondary,
+                fontSize: 10,
+                fontWeight: PasslyFont.bold,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

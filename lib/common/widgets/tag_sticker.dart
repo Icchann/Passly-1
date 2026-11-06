@@ -292,7 +292,7 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// ステッカーの下にタグ名を付けたもの。マイページ・相手のプロフィール・編集画面で使う。
+/// ステッカーの下にタグ名を付けたもの。マイページ・相手のプロフィール・編集画面・すれ違い画面で使う。
 class LabeledTagSticker extends StatelessWidget {
   final String tag;
   final double size;
@@ -301,20 +301,27 @@ class LabeledTagSticker extends StatelessWidget {
   final VoidCallback? onRemove;
   final VoidCallback? onTap;
 
+  /// 1 つ分の横幅。省略するとタグ名が収まる幅（[defaultWidth]）にする。
+  final double? width;
+
   const LabeledTagSticker({
     super.key,
     required this.tag,
     this.size = 48,
+    this.width,
     this.same = false,
     this.dimmed = false,
     this.onRemove,
     this.onTap,
   });
 
+  /// [size] のステッカーを並べるときの 1 つ分の横幅
+  static double defaultWidth(double size) => math.max(size + 16, 68);
+
   @override
   Widget build(BuildContext context) {
     final content = SizedBox(
-      width: math.max(size + 16, 68),
+      width: width ?? defaultWidth(size),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

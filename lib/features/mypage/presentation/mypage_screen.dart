@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/common/widgets/passly_circle_button.dart';
 import 'package:passly/common/widgets/passly_icon.dart';
 import 'package:passly/core/constants/app_colors.dart';
@@ -356,39 +357,12 @@ class _TagWrap extends StatelessWidget {
         ),
       );
     }
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [for (final tag in tags) _TagChip(label: tag)],
-    );
-  }
-}
-
-/// Figma node 1242:1429 準拠のタグチップ (Go / Figma / Flutter 等)。
-/// 相手プロフィールの TECH TAG（同じタグ以外）と同じ見た目。
-class _TagChip extends StatelessWidget {
-  final String label;
-
-  const _TagChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: PasslyBg.surface,
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: PasslyBorder.strong, width: 1),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontFamily: PasslyFont.family,
-          color: AppColors.textPrimary,
-          fontSize: 12,
-          fontWeight: PasslyFont.medium,
-          height: 14.4 / 12,
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 2),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 12,
+        children: [for (final tag in tags) LabeledTagSticker(tag: tag)],
       ),
     );
   }

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import 'package:passly/common/widgets/common_tag_chip.dart';
 import 'package:passly/common/widgets/passly_icon.dart';
 import 'package:passly/common/widgets/press_feedback.dart';
+import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
 
 /// 共通タグ付きの「すれ違った人」1 件分のカード。
 ///
 /// アバター + 名前（お気に入りなら黄色の★）+ 会ったイベント（任意）+
-/// 共通タグ（3 つまで + 「+N」）+ 右向きシェブロン。
+/// タグのステッカー（4 つまで + 「+N」，同じタグは緑のふち）+ 右向きシェブロン。
 /// ホームの「ほかに共通点のある人」/ その日に出会った人 / 広場で使う。
 class CommonTagPersonCard extends StatelessWidget {
   final String name;
@@ -20,6 +20,10 @@ class CommonTagPersonCard extends StatelessWidget {
   /// 共通タグ。null は計算中、空は「共通タグなし」。
   final List<String>? commonTags;
 
+  /// 相手のタグ全部。渡すと共通タグ以外のタグも並べる（広場の「すべて」）。
+  /// null のときは共通タグだけを出す。
+  final List<String>? allTags;
+
   final bool isFavorite;
   final VoidCallback? onTap;
 
@@ -28,6 +32,7 @@ class CommonTagPersonCard extends StatelessWidget {
     required this.name,
     required this.iconUrl,
     required this.commonTags,
+    this.allTags,
     this.subtitle,
     this.isFavorite = false,
     this.onTap,
@@ -37,7 +42,7 @@ class CommonTagPersonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tags = commonTags;
+    final tags = allTags ?? commonTags;
     final content = Container(
       constraints: const BoxConstraints(minHeight: 71),
       decoration: BoxDecoration(
@@ -96,13 +101,13 @@ class CommonTagPersonCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 if (tags == null)
-                  const SizedBox(height: 16)
+                  const SizedBox(height: 30)
                 else if (tags.isEmpty)
-                  const Text(
-                    '共通タグなし',
-                    style: TextStyle(
+                  Text(
+                    allTags == null ? '共通タグなし' : 'タグ未設定',
+                    style: const TextStyle(
                       fontFamily: PasslyFont.family,
                       color: PasslyText.secondary,
                       fontSize: 11,
@@ -110,7 +115,7 @@ class CommonTagPersonCard extends StatelessWidget {
                     ),
                   )
                 else
-                  CommonTagRow(tags: tags),
+                  TagStickerRow(tags: tags, common: commonTags ?? const []),
               ],
             ),
           ),

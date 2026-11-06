@@ -45,6 +45,24 @@ final commonTagsProvider =
       return commonTechTags(mine, other);
     });
 
+/// 相手が付けているタグ全部。
+///
+/// [CommonTagsTarget.techStack] が空のときは GET /users/:id で取りに行く
+/// （[commonTagsProvider] と同じ通信なので，キャッシュが共有される）。
+final techTagsOfProvider =
+    FutureProvider.family<List<String>, CommonTagsTarget>((ref, target) async {
+      var raw = target.techStack;
+      if (raw.trim().isEmpty && target.userId.isNotEmpty) {
+        try {
+          final user = await ref.watch(userByIdProvider(target.userId).future);
+          raw = user.techStack;
+        } catch (_) {
+          return const [];
+        }
+      }
+      return parseTechTags(raw);
+    });
+
 /// 共通タグが一番多い人を返す。同数のときは [items] で先に来る人を優先する。
 T? pickMostCommon<T>(List<T> items, List<String> Function(T) tagsOf) {
   T? best;

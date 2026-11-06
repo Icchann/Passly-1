@@ -325,18 +325,24 @@ class _MyPageScreenState extends ConsumerState<MyPageScreen> {
                       onSave: _saveAll,
                     ),
                   ),
+                ] else ...[
+                  const SizedBox(height: 28),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 21),
+                    child: _EditProfileButton(
+                      onTap: () => _enterEditMode(user),
+                    ),
+                  ),
                 ],
               ],
             ),
           ),
-          // 半透明のヘッダー: 編集ペン + (QR / 友だち追加) + 歯車。
+          // 半透明のヘッダー: (QR / 友だち追加) + 歯車。
           // カバー写真の上に配置する。編集モード中は非表示 (画面下に
           // キャンセル / 保存ボタンが出るので操作は損なわれない)。
           if (!_isEditing)
             SafeArea(
               child: _FloatingHeader(
-                isEditing: _isEditing,
-                onEdit: () => _enterEditMode(user),
                 onOpenSettings: () => context.push('/settings'),
                 onOpenQr: () => context.push('/mypage/qr'),
               ),
@@ -636,51 +642,33 @@ class _AvatarFallback extends StatelessWidget {
 /// マイページはボトムナビタブから開くため戻る先が無く Figma の左上戻る
 /// ボタンは撤去済み。代わりに歯車ボタンから設定画面へ遷移する。
 class _FloatingHeader extends StatelessWidget {
-  final bool isEditing;
-  final VoidCallback onEdit;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenQr;
 
-  const _FloatingHeader({
-    required this.isEditing,
-    required this.onEdit,
-    required this.onOpenSettings,
-    required this.onOpenQr,
-  });
+  const _FloatingHeader({required this.onOpenSettings, required this.onOpenQr});
 
   @override
   Widget build(BuildContext context) {
-    // 編集ペンを左端、右端に「友だち追加 (QR) + 歯車」を横並びに配置。
+    // 右端に「友だち追加 (QR) + 歯車」を横並びに配置。
+    // 編集は画面下の「プロフィールを編集」ボタンから入る。
     // 他画面のヘッダー (PasslyHeader) と横方向の位置を揃えるため
     // 左右 20 のパディングに統一する。
     // ボタンは白い丸なので、カバー写真の明るさに関係なくアイコンは濃い色。
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           PasslyCircleButton(
-            asset: PasslyIcons.edit,
-            iconSize: 24,
-            // 編集モード中はブランドカラーで active を表現。
-            color: isEditing ? PasslyBrand.primaryLight : PasslyText.primary,
-            onTap: onEdit,
+            asset: PasslyIcons.addFriend,
+            iconSize: 20,
+            onTap: onOpenQr,
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              PasslyCircleButton(
-                asset: PasslyIcons.addFriend,
-                iconSize: 20,
-                onTap: onOpenQr,
-              ),
-              const SizedBox(width: 8),
-              PasslyCircleButton(
-                asset: PasslyIcons.settings,
-                iconSize: 24,
-                onTap: onOpenSettings,
-              ),
-            ],
+          const SizedBox(width: 8),
+          PasslyCircleButton(
+            asset: PasslyIcons.settings,
+            iconSize: 24,
+            onTap: onOpenSettings,
           ),
         ],
       ),
@@ -1243,6 +1231,89 @@ class _SnsButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 画面下の「すれ違った人にもこの見た目で表示されます」＋「プロフィールを編集」。
+///
+/// マイページは相手プロフィールと同じ見た目にしているので，
+/// 切り替えなしで「相手にはこう見える」ことを 1 行で伝える。
+class _EditProfileButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _EditProfileButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.visibility_outlined,
+              size: 16,
+              color: PasslyText.secondary,
+            ),
+            SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'すれ違った人にもこの見た目で表示されます',
+                style: TextStyle(
+                  fontFamily: PasslyFont.family,
+                  color: PasslyText.secondary,
+                  fontSize: 12,
+                  fontWeight: PasslyFont.regular,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(100),
+            onTap: onTap,
+            child: Ink(
+              height: 50,
+              decoration: BoxDecoration(
+                color: PasslyBrand.primaryLight,
+                borderRadius: BorderRadius.circular(100),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  PasslyIcon(
+                    asset: PasslyIcons.edit,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'プロフィールを編集',
+                    style: TextStyle(
+                      fontFamily: PasslyFont.family,
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

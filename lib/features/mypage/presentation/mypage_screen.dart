@@ -1038,50 +1038,31 @@ class _TagWrap extends StatelessWidget {
 }
 
 /// Figma node 1242:1429 準拠のタグチップ (Go / Figma / Flutter 等)。
+/// 相手プロフィールの TECH TAG（同じタグ以外）と同じ見た目。
 class _TagChip extends StatelessWidget {
   final String label;
-  final IconData? icon;
-  final VoidCallback? onTap;
 
-  const _TagChip({required this.label, this.icon, this.onTap});
+  const _TagChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final chip = Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: icon == null ? 12 : 10,
-        vertical: 5,
-      ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         color: PasslyBg.surface,
         borderRadius: BorderRadius.circular(100),
         border: Border.all(color: PasslyBorder.strong, width: 1),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, color: PasslyText.secondary, size: 14),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: PasslyFont.family,
-              color: AppColors.textPrimary,
-              fontSize: 12,
-              fontWeight: PasslyFont.medium,
-              height: 14.4 / 12,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontFamily: PasslyFont.family,
+          color: AppColors.textPrimary,
+          fontSize: 12,
+          fontWeight: PasslyFont.medium,
+          height: 14.4 / 12,
+        ),
       ),
-    );
-    if (onTap == null) return chip;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(100),
-      child: chip,
     );
   }
 }
@@ -1111,7 +1092,7 @@ class _LinkSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionHeading('LINK'),
-        const SizedBox(height: PasslySpace.s8),
+        const SizedBox(height: PasslySpace.s12),
         if (isEditing)
           Column(
             children: [
@@ -1128,35 +1109,30 @@ class _LinkSection extends StatelessWidget {
             ],
           )
         else
-          _buildChips(),
+          _buildButtons(),
       ],
     );
   }
 
-  Widget _buildChips() {
+  /// 相手プロフィールと同じ SNS ボタン（先頭だけ黒塗り，2 列）。
+  /// すれ違った人に見えるのと同じ文言にしている。
+  Widget _buildButtons() {
     final links = <_LinkEntry>[
       if (profile.twitterUrl.isNotEmpty)
         _LinkEntry(
-          label: 'X',
-          icon: Icons.alternate_email,
+          label: 'X でフォロー',
           url: _normalizeTwitterUrl(profile.twitterUrl),
         ),
       if (profile.githubUrl.isNotEmpty)
         _LinkEntry(
-          label: 'GitHub',
-          icon: Icons.code,
+          label: 'GitHub を見る',
           url: _normalizeGitHubUrl(profile.githubUrl),
         ),
       if (profile.portfolioUrl.isNotEmpty)
-        _LinkEntry(
-          label: 'Portfolio',
-          icon: Icons.link,
-          url: profile.portfolioUrl,
-        ),
+        _LinkEntry(label: 'ポートフォリオ', url: profile.portfolioUrl),
       if (profile.connpassUrl.isNotEmpty)
         _LinkEntry(
-          label: 'Connpass',
-          icon: Icons.event,
+          label: 'connpass を見る',
           url: _normalizeConnpassUrl(profile.connpassUrl),
         ),
     ];
@@ -1171,17 +1147,26 @@ class _LinkSection extends StatelessWidget {
         ),
       );
     }
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final link in links)
-          _TagChip(
-            label: link.label,
-            icon: link.icon,
-            onTap: () => onOpen(link.url),
-          ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        final width = (constraints.maxWidth - gap) / 2;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (int i = 0; i < links.length; i++)
+              SizedBox(
+                width: width,
+                child: _SnsButton(
+                  label: links[i].label,
+                  primary: i == 0,
+                  onTap: () => onOpen(links[i].url),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -1212,14 +1197,54 @@ class _LinkSection extends StatelessWidget {
 
 class _LinkEntry {
   final String label;
-  final IconData icon;
   final String url;
 
-  const _LinkEntry({
+  const _LinkEntry({required this.label, required this.url});
+}
+
+/// SNS ボタン。先頭だけ黒塗り，ほかは白地に枠線（相手プロフィールと同じ）。
+class _SnsButton extends StatelessWidget {
+  final String label;
+  final bool primary;
+  final VoidCallback onTap;
+
+  const _SnsButton({
     required this.label,
-    required this.icon,
-    required this.url,
+    required this.primary,
+    required this.onTap,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: primary ? PasslyText.primary : PasslyBg.surface,
+      shape: StadiumBorder(
+        side: primary
+            ? BorderSide.none
+            : const BorderSide(color: PasslyBorder.strong),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          height: 48,
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: PasslyFont.family,
+                color: primary ? Colors.white : AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SectionHeading extends StatelessWidget {

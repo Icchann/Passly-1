@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
@@ -995,6 +996,10 @@ class _ResultRow extends StatelessWidget {
         ),
         child: Row(
           children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, right: 14),
+              child: TagSticker(tag: tag, size: 30, tilt: false),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1057,7 +1062,7 @@ class _ResultRow extends StatelessWidget {
   }
 }
 
-/// 選んだタグ (緑・× で外す)。
+/// 選んだタグ。ステッカーで並べ，右上の×で外す。
 class _SelectedTags extends StatelessWidget {
   final List<String> tags;
   final ValueChanged<String> onRemove;
@@ -1076,37 +1081,33 @@ class _SelectedTags extends StatelessWidget {
         ),
       );
     }
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final tag in tags)
-          GestureDetector(
-            onTap: () => onRemove(tag),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
-              decoration: BoxDecoration(
-                color: PasslyBrand.primary,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    tag,
-                    style: const TextStyle(
-                      fontFamily: PasslyFont.family,
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: PasslyFont.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.close, size: 14, color: Colors.white),
-                ],
-              ),
-            ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6, left: 2),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 12,
+            children: [
+              for (final tag in tags)
+                LabeledTagSticker(
+                  key: ValueKey(tag),
+                  tag: tag,
+                  onRemove: () => onRemove(tag),
+                ),
+            ],
           ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          '右上の×で外せます．',
+          style: TextStyle(
+            fontFamily: PasslyFont.family,
+            color: PasslyText.secondary,
+            fontSize: 11,
+          ),
+        ),
       ],
     );
   }
@@ -1228,68 +1229,25 @@ class _CategoryRow extends StatelessWidget {
           if (isOpen)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final tag in category.tags)
-                    _ChoiceChip(
-                      label: tag,
-                      selected: selected.contains(tag),
-                      onTap: () => onToggle(tag),
-                    ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6, left: 2),
+                child: Wrap(
+                  spacing: 4,
+                  runSpacing: 12,
+                  children: [
+                    for (final tag in category.tags)
+                      LabeledTagSticker(
+                        tag: tag,
+                        size: 40,
+                        same: selected.contains(tag),
+                        dimmed: !selected.contains(tag),
+                        onTap: () => onToggle(tag),
+                      ),
+                  ],
+                ),
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _ChoiceChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ChoiceChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? PasslyBrand.primary : PasslyBg.surface,
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(
-            color: selected ? PasslyBrand.primary : PasslyBorder.strong,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selected) ...[
-              const Icon(Icons.check, size: 13, color: Colors.white),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: PasslyFont.family,
-                color: selected ? Colors.white : AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: selected ? PasslyFont.bold : PasslyFont.medium,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -13,6 +13,18 @@ void main() {
       ]);
     });
 
+    test('React Native のように空白を含むタグは分けない', () {
+      expect(parseTechTags('React Native, Flutter, Adobe XD'), [
+        'React Native',
+        'Flutter',
+        'Adobe XD',
+      ]);
+    });
+
+    test('カタログの表記にそろえ，重複は除く', () {
+      expect(parseTechTags('flutter, Flutter, figma'), ['Flutter', 'Figma']);
+    });
+
     test('空文字は空配列', () {
       expect(parseTechTags('  '), isEmpty);
     });

@@ -1,17 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:passly/features/auth/domain/auth_notifier.dart';
+import 'package:passly/features/user/data/tech_tag_catalog.dart';
 import 'package:passly/features/user/data/user_repository.dart';
 
 /// カンマ / スラッシュ / 中点 / 空白 で区切られた tech_stack 文字列をタグ配列にする。
-List<String> parseTechTags(String raw) {
-  if (raw.trim().isEmpty) return const [];
-  return raw
-      .split(RegExp(r'[,、/／・\s]+'))
-      .map((s) => s.trim())
-      .where((s) => s.isNotEmpty)
-      .toList();
-}
+///
+/// 「React Native」のようにカタログに空白入りのタグがあるので，
+/// 区切り方は [TechTagCatalog.parse] にそろえる。
+List<String> parseTechTags(String raw) => TechTagCatalog.parse(raw);
 
 /// 大文字小文字を無視して積集合を返す。表示順は相手側の順序を維持。
 List<String> commonTechTags(String mine, String other) {

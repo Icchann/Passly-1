@@ -18,7 +18,6 @@ import 'package:passly/features/ble/ble_notifier.dart';
 import 'package:passly/features/settings/domain/settings_notifier.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
 import 'package:passly/features/encounter/domain/encounter_notifier.dart';
-import 'package:passly/features/mypage/domain/mypage_editing_provider.dart';
 import 'package:passly/features/encounter/domain/encounter_model.dart';
 import 'package:passly/features/user/domain/user_model.dart';
 import 'package:passly/features/ble/domain/power_mode_notifier.dart';
@@ -363,11 +362,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
     //   近接センサーが反応した時(_isNear == true)のみ、画面を真っ黒にしてタッチを無効化（ポケット誤動作防止・OLED省電力化）する。
     final shouldBlackoutScreen = _isNear && (powerMode == PowerMode.pocket);
 
-    // マイページ編集中はボトムナビを非表示にして、編集操作 (キャンセル / 保存)
-    // に集中できるようにする。
-    final hideBottomNav = ref.watch(myPageEditingProvider);
     final showPocketModeButton =
-        !hideBottomNav &&
         defaultTargetPlatform == TargetPlatform.iOS &&
         widget.navigationShell.currentIndex == 0 &&
         (ref.watch(settingsNotifierProvider).value?.isBleEnabled ?? true);
@@ -378,7 +373,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
           backgroundColor: AppColors.backgroundWhite,
           extendBody: true, // タブバーの背後まで画面を広げる
           body: widget.navigationShell,
-          bottomNavigationBar: hideBottomNav ? null : _buildBottomNav(context),
+          bottomNavigationBar: _buildBottomNav(context),
         ),
         // ポケットモードの切り替え（iOS のホームだけ。右端から 16、ナビの上端から 16 上）。
         // ナビの Stack の外にはみ出して置くとタップが届かないので、画面全体の Stack に置く。

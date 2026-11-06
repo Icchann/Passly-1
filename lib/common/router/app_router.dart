@@ -20,6 +20,7 @@ import 'package:passly/features/plaza/presentation/profile_screen.dart';
 import 'package:passly/features/calendar/presentation/calendar_screen.dart';
 import 'package:passly/features/mypage/presentation/mypage_qr_screen.dart';
 import 'package:passly/features/mypage/presentation/mypage_screen.dart';
+import 'package:passly/features/mypage/presentation/profile_edit_screen.dart';
 import 'package:passly/features/mypage/presentation/qr_scan_screen.dart';
 import 'package:passly/features/mypage/presentation/stamp_card_screen.dart';
 import 'package:passly/features/settings/presentation/settings_screen.dart';
@@ -112,6 +113,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/mypage/qr',
         builder: (context, state) => const MyPageQrScreen(),
+      ),
+
+      // マイページの「プロフィールを編集」から開く編集画面
+      GoRoute(
+        path: '/mypage/edit',
+        builder: (context, state) => const ProfileEditScreen(),
       ),
 
       // QR 表示画面ヘッダーのスキャナアイコンから開く QR コード読み取り画面

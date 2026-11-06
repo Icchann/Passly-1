@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/common/widgets/encounter_meta_pill.dart';
 import 'package:passly/common/widgets/loading_card_skeleton.dart';
 import 'package:passly/core/constants/app_colors.dart';
@@ -723,13 +724,17 @@ class _TechTagSection extends StatelessWidget {
             ),
           )
         else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final tag in common) _SameTagChip(label: tag),
-              for (final tag in others) _TagChip(label: tag),
-            ],
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 2),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 12,
+              children: [
+                for (final tag in common)
+                  LabeledTagSticker(tag: tag, same: true),
+                for (final tag in others) LabeledTagSticker(tag: tag),
+              ],
+            ),
           ),
         if (common.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -756,69 +761,6 @@ class _TechTagSection extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-/// 自分と同じタグ。緑塗り + チェック。
-class _SameTagChip extends StatelessWidget {
-  final String label;
-
-  const _SameTagChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: PasslyBrand.primary,
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: PasslyBrand.primary),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.check_rounded, color: Colors.white, size: 13),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              height: 14.4 / 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 自分とは重ならないタグ。白地に枠線。
-class _TagChip extends StatelessWidget {
-  final String label;
-
-  const _TagChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundWhite,
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          height: 14.4 / 12,
-        ),
-      ),
     );
   }
 }

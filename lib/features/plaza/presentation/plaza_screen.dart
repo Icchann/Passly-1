@@ -134,6 +134,15 @@ class _PlazaScreenState extends ConsumerState<PlazaScreen> {
               iconUrl: e.iconUrl,
               subtitle: e.eventName.trim(),
               commonTags: tagsOf(e),
+              allTags: ref
+                  .watch(
+                    techTagsOfProvider((
+                      userId: e.userId,
+                      techStack: e.techStack,
+                    )),
+                  )
+                  .asData
+                  ?.value,
               isFavorite: favoriteIds.contains(e.userId),
               onTap: () => context.push('/profile/${e.userId}'),
             ),

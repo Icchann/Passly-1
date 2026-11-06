@@ -504,8 +504,8 @@ class _CommonTagCard extends StatefulWidget {
 }
 
 class _CommonTagCardState extends State<_CommonTagCard> {
-  static const double _stickerSize = 44;
-  static const double _itemWidth = 62;
+  static const double _stickerSize = 40;
+  static const double _itemWidth = 58;
 
   bool _expanded = false;
 

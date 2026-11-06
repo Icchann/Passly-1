@@ -94,19 +94,24 @@ void main() {
           );
           expect(tester.takeException(), isNull);
           // たたんだ状態は「+N すべて見る」まで含めて 1 行に収まる
+          // （幅の広い画面では 5 つ全部が 1 行に入るので「+N」は出ない）
           final shown = find.byType(LabeledTagSticker);
           final count = tester.widgetList(shown).length;
-          expect(count, inInclusiveRange(1, 4));
-          expect(find.text('+${5 - count}'), findsOneWidget);
-          final more = find.text('すべて見る');
+          expect(count, inInclusiveRange(1, 5));
           final rowTop = tester.getTopLeft(shown.first).dy;
           for (final e in shown.evaluate()) {
             expect(tester.getTopLeft(find.byWidget(e.widget)).dy, rowTop);
           }
+          final more = find.text('すべて見る');
+          if (count == 5) {
+            expect(more, findsNothing);
+            return;
+          }
+          expect(find.text('+${5 - count}'), findsOneWidget);
           expect(tester.getBottomLeft(more).dy, lessThan(rowTop + 80));
 
-          await tester.ensureVisible(find.text('すべて見る'));
-          await tester.tap(find.text('すべて見る'));
+          await tester.ensureVisible(more);
+          await tester.tap(more);
           await tester.pump();
           expect(tester.takeException(), isNull);
           expect(find.byType(LabeledTagSticker), findsNWidgets(5));

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,161 +9,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:passly/common/widgets/passly_header.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
-import 'package:passly/core/network/password_change_error.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
-import 'package:passly/features/auth/data/auth_repository.dart';
 import 'package:passly/features/ble/ble_notifier.dart';
 import 'package:passly/features/user/data/user_repository.dart';
 import 'package:passly/features/settings/domain/settings_notifier.dart';
+import 'package:passly/features/settings/presentation/settings_sheets.dart';
 import 'package:passly/features/ble/domain/power_mode_notifier.dart';
-
-class _ChangePasswordDialog extends ConsumerStatefulWidget {
-  const _ChangePasswordDialog();
-
-  @override
-  ConsumerState<_ChangePasswordDialog> createState() =>
-      _ChangePasswordDialogState();
-}
-
-class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
-  final formKey = GlobalKey<FormState>();
-  final currentController = TextEditingController();
-  final newController = TextEditingController();
-  final confirmationController = TextEditingController();
-  bool isSaving = false;
-  bool obscureCurrent = true;
-  bool obscureNew = true;
-  bool obscureConfirmation = true;
-
-  @override
-  void dispose() {
-    // 閉じるアニメーション中も入力欄が参照するため、Stateと同時に破棄する。
-    currentController.dispose();
-    newController.dispose();
-    confirmationController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (!formKey.currentState!.validate()) return;
-    final user = ref.read(authNotifierProvider).value;
-    if (user == null) return;
-    setState(() => isSaving = true);
-    try {
-      await ref
-          .read(authRepositoryProvider)
-          .changePassword(
-            userId: user.id,
-            currentPassword: currentController.text,
-            newPassword: newController.text,
-          );
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error is DioException && isIncorrectCurrentPassword(error)
-                ? '現在のパスワードが正しくありません'
-                : 'パスワードの変更に失敗しました',
-          ),
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('パスワードを変更'),
-      content: Form(
-        key: formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _passwordField(
-                controller: currentController,
-                label: '現在のパスワード',
-                obscure: obscureCurrent,
-                onToggle: () =>
-                    setState(() => obscureCurrent = !obscureCurrent),
-              ),
-              const SizedBox(height: 12),
-              _passwordField(
-                controller: newController,
-                label: '新しいパスワード（6文字以上）',
-                obscure: obscureNew,
-                onToggle: () => setState(() => obscureNew = !obscureNew),
-                validator: (value) {
-                  if (value == null || value.length < 6) {
-                    return '6文字以上で入力してください';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              _passwordField(
-                controller: confirmationController,
-                label: '確認用パスワード',
-                obscure: obscureConfirmation,
-                onToggle: () =>
-                    setState(() => obscureConfirmation = !obscureConfirmation),
-                validator: (value) {
-                  if (value != newController.text) {
-                    return 'パスワードが一致しません';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('キャンセル'),
-        ),
-        FilledButton(
-          onPressed: isSaving ? null : _save,
-          child: isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('変更する'),
-        ),
-      ],
-    );
-  }
-
-  Widget _passwordField({
-    required TextEditingController controller,
-    required String label,
-    required bool obscure,
-    required VoidCallback onToggle,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscure,
-      validator:
-          validator ??
-          (value) => value == null || value.isEmpty ? '入力してください' : null,
-      decoration: InputDecoration(
-        labelText: label,
-        suffixIcon: IconButton(
-          onPressed: onToggle,
-          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
-        ),
-      ),
-    );
-  }
-}
 
 /// アプリの設定画面。マイページ右上の歯車ボタンから遷移する。
 ///
@@ -365,9 +215,9 @@ class SettingsScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final changed = await showDialog<bool>(
-      context: context,
-      builder: (_) => const _ChangePasswordDialog(),
+    final changed = await showSettingsSheet(
+      context,
+      const ChangePasswordSheet(),
     );
     if (changed == true && context.mounted) {
       ScaffoldMessenger.of(
@@ -408,11 +258,9 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmAndLogout(BuildContext context, WidgetRef ref) async {
-    final confirmed = await _showConfirmDialog(
-      context: context,
-      title: 'ログアウトしますか？',
-      confirmLabel: 'ログアウト',
-      isDestructive: false,
+    final confirmed = await showSettingsSheet(
+      context,
+      const AccountActionSheet.logout(),
     );
     if (confirmed != true) return;
     await ref.read(authNotifierProvider.notifier).logout();
@@ -423,12 +271,9 @@ class SettingsScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final confirmed = await _showConfirmDialog(
-      context: context,
-      title: '本当にアカウントを削除しますか？',
-      message: 'この操作は取り消せません。すれ違い履歴や親しい友達などの情報が全て消えます。',
-      confirmLabel: '削除する',
-      isDestructive: true,
+    final confirmed = await showSettingsSheet(
+      context,
+      const AccountActionSheet.deleteAccount(),
     );
     if (confirmed != true) return;
 
@@ -450,39 +295,6 @@ class SettingsScreen extends ConsumerWidget {
           );
       }
     }
-  }
-
-  Future<bool?> _showConfirmDialog({
-    required BuildContext context,
-    required String title,
-    String? message,
-    required String confirmLabel,
-    required bool isDestructive,
-  }) {
-    return showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(title),
-          content: message == null ? null : Text(message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('キャンセル'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: isDestructive
-                    ? PasslyState.error
-                    : PasslyBrand.primary,
-              ),
-              child: Text(confirmLabel),
-            ),
-          ],
-        );
-      },
-    );
   }
 }
 

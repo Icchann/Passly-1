@@ -1,7 +1,8 @@
 /// その人が次に参加するイベント（バックエンド: next_event）。
 ///
-/// 相手プロフィールの「NEXT EVENT」に出す。サーバーはまだ返さないので、
+/// イベント画面の「お気に入りの人の予定」に出す。サーバーはまだ返さないので、
 /// 今はデモモードのダミーデータだけで埋まる。
+/// GET /events と同じ名前（start_at / event_url）で返ってきても読めるようにしている。
 class NextEvent {
   final String title;
   final DateTime startedAt;
@@ -21,13 +22,15 @@ class NextEvent {
   static NextEvent? tryParse(Object? json) {
     if (json is! Map) return null;
     final title = json['title']?.toString() ?? '';
-    final startedAt = DateTime.tryParse(json['started_at']?.toString() ?? '');
+    final startedAt = DateTime.tryParse(
+      (json['started_at'] ?? json['start_at'])?.toString() ?? '',
+    );
     if (title.isEmpty || startedAt == null) return null;
     return NextEvent(
       title: title,
       startedAt: startedAt,
       place: json['place']?.toString() ?? '',
-      url: json['url']?.toString() ?? '',
+      url: (json['url'] ?? json['event_url'])?.toString() ?? '',
       imageUrl: json['image_url']?.toString() ?? '',
     );
   }

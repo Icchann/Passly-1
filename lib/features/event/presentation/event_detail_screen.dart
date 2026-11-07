@@ -26,7 +26,9 @@ final eventMetPeopleProvider =
       final data = await ref
           .read(calendarRepositoryProvider)
           .fetchDailyEncounters(userId: me.id, dateString: eventDateParam(day));
-      final users = (data['users'] as List? ?? const [])
+      // 実バックエンドは encounter_users、デモは users で返す。
+      final users =
+          (data['users'] as List? ?? data['encounter_users'] as List? ?? const [])
           .whereType<Map>()
           .toList();
       bool hasCommon(Map u) => commonTechTags(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:passly/common/widgets/text_field_context_menu.dart';
 import 'package:passly/common/widgets/passly_circle_button.dart';
 import 'package:passly/common/widgets/passly_icon.dart';
 import 'package:passly/common/widgets/press_feedback.dart';
@@ -431,6 +432,7 @@ class _HeaderSearchField extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              contextMenuBuilder: passlyContextMenuBuilder,
               controller: controller,
               onSubmitted: onSubmitted,
               onChanged: onChanged,

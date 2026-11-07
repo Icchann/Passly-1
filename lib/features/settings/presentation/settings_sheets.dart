@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:passly/common/widgets/text_field_context_menu.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
 import 'package:passly/core/network/password_change_error.dart';
 import 'package:passly/features/auth/data/auth_repository.dart';
@@ -253,6 +254,7 @@ class _PasswordField extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         TextFormField(
+          contextMenuBuilder: passlyContextMenuBuilder,
           controller: controller,
           obscureText: obscure,
           autocorrect: false,

@@ -4,5 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    
+    <!-- ローカルバックエンド(http://)に繋ぐための設定。debugビルドのみ有効で、releaseには含まれない。 -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

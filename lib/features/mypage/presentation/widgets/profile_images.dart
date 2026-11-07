@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:passly/common/widgets/sized_network_image.dart';
 
 import 'package:passly/core/constants/passly_tokens.dart';
 
@@ -24,11 +25,7 @@ class ProfileCoverImage extends StatelessWidget {
       );
     }
     if (url.isEmpty) return const _CoverFallback();
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => const _CoverFallback(),
-    );
+    return SizedNetworkImage(url: url, fallback: (_) => const _CoverFallback());
   }
 }
 
@@ -89,10 +86,9 @@ class ProfileAvatarCircle extends StatelessWidget {
       );
     }
     if (url.isNotEmpty) {
-      return Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => const _AvatarFallback(),
+      return SizedNetworkImage(
+        url: url,
+        fallback: (_) => const _AvatarFallback(),
       );
     }
     return const _AvatarFallback();

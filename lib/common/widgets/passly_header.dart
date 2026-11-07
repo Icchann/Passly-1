@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:passly/common/widgets/sized_network_image.dart';
 
 import 'package:passly/common/widgets/text_field_context_menu.dart';
 import 'package:passly/common/widgets/passly_circle_button.dart';
@@ -289,10 +290,9 @@ class _HeaderAvatar extends StatelessWidget {
         width: 40,
         height: 40,
         child: url != null
-            ? Image.network(
-                url!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const _AvatarFallback(),
+            ? SizedNetworkImage(
+                url: url!,
+                fallback: (_) => const _AvatarFallback(),
               )
             : const _AvatarFallback(),
       ),

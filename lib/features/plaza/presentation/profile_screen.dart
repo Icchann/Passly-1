@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:passly/common/widgets/sized_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -171,10 +172,9 @@ class _CoverAndAvatar extends StatelessWidget {
 
   Widget _buildCover() {
     if (profile.coverUrl.isNotEmpty) {
-      return Image.network(
-        profile.coverUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _coverFallback(),
+      return SizedNetworkImage(
+        url: profile.coverUrl,
+        fallback: (_) => _coverFallback(),
       );
     }
     return _coverFallback();
@@ -249,11 +249,7 @@ class _Avatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: iconUrl.isNotEmpty
-            ? Image.network(
-                iconUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _fallback(),
-              )
+            ? SizedNetworkImage(url: iconUrl, fallback: (_) => _fallback())
             : _fallback(),
       ),
     );

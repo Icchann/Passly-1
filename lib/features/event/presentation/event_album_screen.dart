@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:passly/common/widgets/loading_card_skeleton.dart';
 import 'package:passly/common/widgets/passly_header.dart';
 import 'package:passly/common/widgets/press_feedback.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
+import 'package:passly/core/utils/app_time.dart';
 import 'package:passly/features/event/domain/event_album_notifier.dart';
+import 'package:passly/features/event/domain/favorite_next_events.dart';
 
 /// イベント画面（旧カレンダー）。
 ///
 /// Figma「① イベント 2列だけ」(node 2050:2143)。
 /// イベントの日は一番上に「今日・すれ違い中」のカード（node 2050:2355）。
+/// 「これから」の下に，お気に入りの人が次に参加するイベント（node 2077:2268）。
 /// 上に「これから」のイベント、その下に参加したイベントを新しい順に 2 列で並べる。
 /// カードを押すとそのイベントで出会った人の一覧へ。
 class EventAlbumScreen extends ConsumerWidget {
@@ -43,7 +47,10 @@ class EventAlbumScreen extends ConsumerWidget {
           Expanded(
             child: RefreshIndicator(
               color: PasslyBrand.primary,
-              onRefresh: () => ref.refresh(eventAlbumProvider.future),
+              onRefresh: () {
+                ref.invalidate(favoriteNextEventsProvider);
+                return ref.refresh(eventAlbumProvider.future);
+              },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
@@ -59,6 +66,7 @@ class EventAlbumScreen extends ConsumerWidget {
                       _UpcomingCard(event: data.upcoming!),
                       const SizedBox(height: 20),
                     ],
+                    const _FavoriteNextEvents(),
                     const _SectionTitle('参加したイベント'),
                     const SizedBox(height: 12),
                     if (data.past.isEmpty)
@@ -263,6 +271,167 @@ class _TodayCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 「お気に入りの人の次のイベント」。予定がある人がいなければ何も出さない。
+class _FavoriteNextEvents extends ConsumerWidget {
+  const _FavoriteNextEvents();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(favoriteNextEventsProvider).asData?.value ?? [];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _SectionTitle('お気に入りの人の次のイベント'),
+          const SizedBox(height: 2),
+          const Text(
+            'お気に入りに追加した人が参加予定のイベント',
+            style: TextStyle(
+              fontFamily: PasslyFont.family,
+              fontSize: 11,
+              color: PasslyText.secondary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final (i, item) in items.indexed) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _FavoriteNextEventCard(item: item),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FavoriteNextEventCard extends StatelessWidget {
+  final FavoriteNextEvent item;
+
+  const _FavoriteNextEventCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final e = item.event;
+    final d = AppTime.toAppLocal(e.startedAt);
+    final names = item.users
+        .map((u) => u.name.isEmpty ? '名前未設定' : u.name)
+        .join('・');
+    final canOpen = e.url.isNotEmpty;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: canOpen ? () => _openUrl(e.url) : null,
+      child: PressFeedback(
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: PasslyBg.surface,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: _cardShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: PasslyBrand.primarySurface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${d.month}月',
+                      style: const TextStyle(
+                        fontFamily: PasslyFont.family,
+                        fontSize: 10,
+                        fontWeight: PasslyFont.bold,
+                        color: PasslyBrand.primaryDark,
+                      ),
+                    ),
+                    Text(
+                      '${d.day}',
+                      style: const TextStyle(
+                        fontFamily: PasslyFont.family,
+                        fontSize: 18,
+                        fontWeight: PasslyFont.bold,
+                        color: PasslyText.primary,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      e.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: PasslyFont.family,
+                        fontSize: 14,
+                        fontWeight: PasslyFont.bold,
+                        color: PasslyText.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        _AvatarStack(
+                          users: [
+                            for (final u in item.users)
+                              EventMetUser(id: u.id, iconUrl: u.iconUrl),
+                          ],
+                          max: 3,
+                          size: 20,
+                          step: 13,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '$names が参加予定',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: PasslyFont.family,
+                              fontSize: 11,
+                              fontWeight: PasslyFont.medium,
+                              color: PasslyText.secondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (canOpen) ...[
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: PasslyText.tertiary,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _openUrl(String url) async {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return;
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
 class _SectionTitle extends StatelessWidget {

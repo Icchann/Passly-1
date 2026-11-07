@@ -364,43 +364,47 @@ class _EditProfileButton extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
+        // 影は丸い形のまま外側に描き，ボタン本体は Material で丸く切り抜く。
+        // （Ink に boxShadow を付けると実機で四角い影が出ていた）
+        DecoratedBox(
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(100),
-            onTap: onTap,
-            child: Ink(
-              height: 50,
-              decoration: BoxDecoration(
-                color: PasslyBrand.primaryLight,
-                borderRadius: BorderRadius.circular(100),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+            boxShadow: [
+              BoxShadow(
+                color: PasslyBrand.primary.withValues(alpha: 0.28),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  PasslyIcon(
-                    asset: PasslyIcons.edit,
-                    size: 20,
-                    color: Colors.white,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'プロフィールを編集',
-                    style: TextStyle(
-                      fontFamily: PasslyFont.family,
+            ],
+          ),
+          child: Material(
+            color: PasslyBrand.primaryLight,
+            shape: const StadiumBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox(
+                height: 50,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    PasslyIcon(
+                      asset: PasslyIcons.edit,
+                      size: 20,
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 8),
+                    Text(
+                      'プロフィールを編集',
+                      style: TextStyle(
+                        fontFamily: PasslyFont.family,
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

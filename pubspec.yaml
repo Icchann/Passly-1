@@ -96,6 +96,7 @@ flutter:
     - assets/demo/avatars/
     - assets/demo/events/
     - assets/tags/
+    - assets/sns/
 
 flutter_launcher_icons:
   image_path: "assets/images/app_icon.png"

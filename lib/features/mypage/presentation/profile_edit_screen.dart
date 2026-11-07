@@ -32,11 +32,12 @@ class ProfileEditScreen extends ConsumerStatefulWidget {
 
 /// 文字数の上限 (Figma の案と同じ)。
 const int _nameMax = 20;
-const int _oneWordMax = 30;
 const int _aboutMax = 150;
 
 class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   final _name = TextEditingController();
+
+  /// ひとことは画面に出さなくなったが，保存で消さないように今の値をそのまま送る。
   final _oneWord = TextEditingController();
   final _affiliation = TextEditingController();
   final _about = TextEditingController();
@@ -141,7 +142,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   bool get _isOverLimit =>
       _name.text.characters.length > _nameMax ||
-      _oneWord.text.characters.length > _oneWordMax ||
       _about.text.characters.length > _aboutMax;
 
   bool get _canSave => _isDirty && !_isOverLimit && !_isSaving;
@@ -347,11 +347,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         max: _nameMax,
                       ),
                       _LabeledField(
-                        label: 'ひとこと',
-                        controller: _oneWord,
-                        max: _oneWordMax,
-                      ),
-                      _LabeledField(
                         label: '所属',
                         controller: _affiliation,
                         hint: '例：愛知工業大学',
@@ -363,7 +358,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   _Card(
                     children: [
                       _LabeledField(
-                        label: 'ABOUT',
+                        label: '自己紹介文',
                         controller: _about,
                         max: _aboutMax,
                         maxLines: 5,
@@ -372,7 +367,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  _Heading('TECH TAG', sub: '選んだタグ ${_tags.length}'),
+                  _Heading('タグ', sub: '選んだタグ ${_tags.length}'),
                   _Card(
                     children: [
                       _TagSearchField(controller: _search),
@@ -397,7 +392,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const _Heading('LINK'),
+                  const _Heading('リンク'),
                   _Card(
                     children: [
                       _LabeledField(

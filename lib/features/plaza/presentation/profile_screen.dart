@@ -297,19 +297,6 @@ class _NameSection extends StatelessWidget {
             height: 24 / 20,
           ),
         ),
-        const SizedBox(height: 5),
-        Text(
-          profile.oneWord.isEmpty ? '一言未設定' : profile.oneWord,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: profile.oneWord.isEmpty
-                ? AppColors.textDisabled
-                : AppColors.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            height: 16.8 / 14,
-          ),
-        ),
       ],
     );
   }

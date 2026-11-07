@@ -17,7 +17,7 @@ import 'package:passly/features/user/data/tech_tag_catalog.dart';
 ///
 /// すれ違った人に見える相手プロフィールと同じ見た目にしている。
 /// 上から: カバー写真 + 右上 (友だち追加 / 設定) + アバター +
-/// 名前 / 一言 / 組織チップ + SNS ボタン + 自己紹介 / タグ（白いカード） +
+/// 名前 / 組織チップ + SNS ボタン + 自己紹介 / タグ（白いカード） +
 /// 「すれ違った人にもこの見た目で表示されます」+「プロフィールを編集」。
 ///
 /// 編集は別画面 (/mypage/edit, [ProfileEditScreen]) で行う。
@@ -52,11 +52,7 @@ class MyPageScreen extends ConsumerWidget {
                   extraTopHeight: MediaQuery.of(context).padding.top,
                 ),
                 const SizedBox(height: 16),
-                _NameSection(
-                  name: user.name,
-                  oneWord: user.oneWord,
-                  affiliation: user.affiliation,
-                ),
+                _NameSection(name: user.name, affiliation: user.affiliation),
                 if (snsLinksOf(user).isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Padding(
@@ -199,14 +195,9 @@ class _FloatingHeader extends StatelessWidget {
 
 class _NameSection extends StatelessWidget {
   final String name;
-  final String oneWord;
   final String affiliation;
 
-  const _NameSection({
-    required this.name,
-    required this.oneWord,
-    required this.affiliation,
-  });
+  const _NameSection({required this.name, required this.affiliation});
 
   @override
   Widget build(BuildContext context) {
@@ -221,20 +212,6 @@ class _NameSection extends StatelessWidget {
             fontSize: 20,
             fontWeight: FontWeight.w900,
             height: 24 / 20,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          oneWord.isEmpty ? '一言未設定' : oneWord,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: PasslyFont.family,
-            color: oneWord.isEmpty
-                ? AppColors.textDisabled
-                : PasslyText.secondary,
-            fontSize: 14,
-            fontWeight: PasslyFont.regular,
-            height: 16.8 / 14,
           ),
         ),
         if (affiliation.isNotEmpty) ...[

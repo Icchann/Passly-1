@@ -32,11 +32,12 @@ class ProfileEditScreen extends ConsumerStatefulWidget {
 
 /// 文字数の上限 (Figma の案と同じ)。
 const int _nameMax = 20;
-const int _oneWordMax = 30;
 const int _aboutMax = 150;
 
 class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   final _name = TextEditingController();
+
+  /// ひとことは画面に出さなくなったが，保存で消さないように今の値をそのまま送る。
   final _oneWord = TextEditingController();
   final _affiliation = TextEditingController();
   final _about = TextEditingController();
@@ -141,7 +142,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   bool get _isOverLimit =>
       _name.text.characters.length > _nameMax ||
-      _oneWord.text.characters.length > _oneWordMax ||
       _about.text.characters.length > _aboutMax;
 
   bool get _canSave => _isDirty && !_isOverLimit && !_isSaving;
@@ -345,11 +345,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         label: '名前',
                         controller: _name,
                         max: _nameMax,
-                      ),
-                      _LabeledField(
-                        label: 'ひとこと',
-                        controller: _oneWord,
-                        max: _oneWordMax,
                       ),
                       _LabeledField(
                         label: '所属',

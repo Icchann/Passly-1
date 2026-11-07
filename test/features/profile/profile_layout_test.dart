@@ -86,6 +86,20 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('my page: 「…」から QR 交換と設定を開ける', (tester) async {
+    await _pump(
+      tester,
+      const MyPageScreen(),
+      size: const Size(393, 852),
+      textScale: 1,
+    );
+    expect(find.text('QRでプロフィール交換'), findsNothing);
+    await tester.tap(find.byTooltip('その他'));
+    await tester.pumpAndSettle();
+    expect(find.text('QRでプロフィール交換'), findsOneWidget);
+    expect(find.text('設定'), findsOneWidget);
+  });
+
   for (final entry in _screens.entries) {
     for (final textScale in [1.0, 1.3]) {
       testWidgets('my page fits on ${entry.key} (text x$textScale)', (
@@ -101,7 +115,11 @@ void main() {
         expect(find.text('自己紹介'), findsOneWidget);
         expect(find.text('タグ'), findsOneWidget);
         expect(find.text('でフォロー'), findsOneWidget);
-        expect(find.text('を見る'), findsOneWidget);
+        // GitHub・connpass は丸いロゴ，ポートフォリオは下に横長
+        expect(find.bySemanticsLabel('GitHubを見る'), findsOneWidget);
+        expect(find.bySemanticsLabel('connpassを見る'), findsOneWidget);
+        expect(find.bySemanticsLabel('ポートフォリオを見る'), findsOneWidget);
+        expect(find.bySemanticsLabel('プロフィールを編集'), findsOneWidget);
       });
 
       testWidgets('profile fits on ${entry.key} (text x$textScale)', (

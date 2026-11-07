@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:passly/features/event/domain/event_album_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -65,8 +66,9 @@ class _WeekCalendarScreenState extends ConsumerState<WeekCalendarScreen> {
 
   /// 検索アイコンタップ → イベント検索画面 → 選択日を受け取って反映
   Future<void> _openEventSearch() async {
-    final selected = await context.push<DateTime>('/events/search');
-    if (selected == null || !mounted) return;
+    final picked = await context.push<EventSummary>('/events/search');
+    if (picked == null || !mounted) return;
+    final selected = picked.day;
 
     final nextMonth = _monthOf(selected);
     final currentMonth = _monthOf(_selectedDate);

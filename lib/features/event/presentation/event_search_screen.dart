@@ -6,16 +6,17 @@ import 'package:go_router/go_router.dart';
 import 'package:passly/common/widgets/passly_header.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/features/calendar/presentation/widgets/day_event_card.dart';
-import 'package:passly/features/plaza/domain/plaza_notifier.dart';
-import 'package:passly/core/utils/app_time.dart';
+import 'package:passly/features/event/domain/event_album_notifier.dart';
 
 /// イベント検索画面。
 ///
 /// - 上部: 戻るボタン + 検索フィールド（プレースホルダ「イベント名を入力」）
 /// - 本体: 「関連イベント」見出し + フィルタ済みイベントリスト
-/// - タップ時: そのイベントの開催日を `context.pop<DateTime>(date)` で呼び出し元へ返す
+/// - タップ時: そのイベントを `context.pop<EventSummary>(event)` で呼び出し元へ返す
 ///
-/// データ取得は既存の `plazaEventNotifierProvider`（GET /events）を再利用。
+/// 探す対象はイベント画面と同じ「自分の connpass の参加イベント」
+/// （[eventAlbumProvider]）。サーバー全体のイベント（GET /events）は
+/// 自分と関係ないものや仮のデータが混ざるので使わない。
 /// フィルタは name への部分一致（大文字小文字無視）でクライアント側完結。
 /// 入力のたびに再フェッチはしない。
 class EventSearchScreen extends ConsumerStatefulWidget {
@@ -48,7 +49,15 @@ class _EventSearchScreenState extends ConsumerState<EventSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eventsAsync = ref.watch(plazaEventNotifierProvider);
+    final eventsAsync = ref
+        .watch(eventAlbumProvider)
+        .whenData(
+          (album) => [
+            if (album.today != null) album.today!,
+            ...album.upcoming,
+            ...album.past,
+          ],
+        );
 
     return Scaffold(
       backgroundColor: AppColors.backgroundGrey,
@@ -87,22 +96,20 @@ class _EventSearchScreenState extends ConsumerState<EventSearchScreen> {
     );
   }
 
-  List<Map<String, dynamic>> _filter(List<Map<String, dynamic>> events) {
+  List<EventSummary> _filter(List<EventSummary> events) {
     if (_query.isEmpty) return events;
     final q = _query.toLowerCase();
-    return events
-        .where((e) => (e['name']?.toString() ?? '').toLowerCase().contains(q))
-        .toList();
+    return events.where((e) => e.name.toLowerCase().contains(q)).toList();
   }
 
-  Widget _buildResults(List<Map<String, dynamic>> events) {
+  Widget _buildResults(List<EventSummary> events) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(15, 24, 15, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            '関連イベント',
+            'あなたのイベント',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 20,
@@ -128,47 +135,20 @@ class _EventSearchScreenState extends ConsumerState<EventSearchScreen> {
 
 /// 検索結果カード。`DayEventCard` を薄くラップして pop 動作を追加。
 class _ResultCard extends StatelessWidget {
-  final Map<String, dynamic> event;
+  final EventSummary event;
 
   const _ResultCard({required this.event});
 
   @override
   Widget build(BuildContext context) {
-    final date = _parseDate(event['date']?.toString());
-
     return DayEventCard(
-      eventName: event['name']?.toString() ?? '',
-      date: date ?? AppTime.nowLocal(),
-      location: event['location']?.toString() ?? '',
-      participantCount:
-          (event['count'] as int?) ?? (event['accepted'] as int?) ?? 0,
-      onTap: () {
-        if (date == null) {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              const SnackBar(
-                content: Text('このイベントには有効な開催日が設定されていません'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          return;
-        }
-        context.pop<DateTime>(date);
-      },
+      eventName: event.name,
+      imageUrl: event.imageUrl.isEmpty ? null : event.imageUrl,
+      date: event.startAt,
+      location: event.location,
+      participantCount: event.metUsers.length,
+      onTap: () => context.pop<EventSummary>(event),
     );
-  }
-
-  /// PlazaRepository が組み立てる 'YYYY/MM/DD' 形式を DateTime に戻す。
-  DateTime? _parseDate(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
-    final parts = raw.split('/');
-    if (parts.length != 3) return null;
-    final y = int.tryParse(parts[0]);
-    final m = int.tryParse(parts[1]);
-    final d = int.tryParse(parts[2]);
-    if (y == null || m == null || d == null) return null;
-    return DateTime(y, m, d);
   }
 }
 
@@ -181,7 +161,7 @@ class _EmptyState extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 48),
       child: Center(
         child: Text(
-          '該当するイベントはありません',
+          '見つかりませんでした',
           style: TextStyle(
             color: AppColors.textSecondary,
             fontSize: 14,

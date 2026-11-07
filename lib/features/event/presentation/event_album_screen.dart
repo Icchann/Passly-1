@@ -30,9 +30,9 @@ class EventAlbumScreen extends ConsumerWidget {
       '${d.month}/${d.day}（${_weekdays[d.weekday - 1]}）';
 
   Future<void> _openSearch(BuildContext context) async {
-    final selected = await context.push<DateTime>('/events/search');
+    final selected = await context.push<EventSummary>('/events/search');
     if (selected == null || !context.mounted) return;
-    context.push('/encounters/day/${eventDateParam(selected)}');
+    _openEvent(context, selected);
   }
 
   @override

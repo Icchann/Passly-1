@@ -233,7 +233,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Future<void> _pickAndUploadAvatar() async {
     final user = ref.read(authNotifierProvider).value;
     if (user == null) return;
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    // 大きい写真をそのまま読むと重いので，選んだ時点で小さくする（JPEG になる）。
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 90,
+    );
     if (picked == null || !mounted) return;
 
     // 縦横比が違う画像でも，アイコンにしたい部分を選べるように調整画面を挟む。
@@ -252,7 +258,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       await ref.read(userRepositoryProvider).uploadAvatar(user.id, croppedPath);
       await ref.read(authNotifierProvider.notifier).refresh();
     } catch (e) {
-      _showError('画像のアップロードに失敗しました: $e');
+      debugPrint('avatar upload failed: $e');
+      _showError('画像を変更できませんでした．別の画像で試してください．');
     } finally {
       if (mounted) {
         setState(() {
@@ -266,7 +273,14 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Future<void> _pickAndUploadCover() async {
     final user = ref.read(authNotifierProvider).value;
     if (user == null) return;
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    // 写真をそのまま送ると数 MB になりサーバーに断られる（400）ので，
+    // カバーに十分な大きさの JPEG にしてから送る。
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 85,
+    );
     if (picked == null || !mounted) return;
 
     setState(() {
@@ -277,7 +291,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       await ref.read(userRepositoryProvider).uploadCover(user.id, picked.path);
       await ref.read(authNotifierProvider.notifier).refresh();
     } catch (e) {
-      _showError('カバー画像のアップロードに失敗しました: $e');
+      debugPrint('cover upload failed: $e');
+      _showError('カバー画像を変更できませんでした．別の画像で試してください．');
     } finally {
       if (mounted) {
         setState(() {

@@ -103,7 +103,11 @@ class UserRepository {
         throw Exception('アップロードに失敗しました');
       }
     } on DioException catch (e) {
-      throw Exception('アバター画像のアップロードに失敗しました: ${e.message}');
+      // サーバーが返した理由（ファイルが大きすぎる など）も残す
+      throw Exception(
+        'アバター画像のアップロードに失敗しました: '
+        '${e.response?.statusCode} ${e.response?.data ?? e.message}',
+      );
     }
   }
 
@@ -136,7 +140,10 @@ class UserRepository {
         throw Exception('アップロードに失敗しました');
       }
     } on DioException catch (e) {
-      throw Exception('カバー画像のアップロードに失敗しました: ${e.message}');
+      throw Exception(
+        'カバー画像のアップロードに失敗しました: '
+        '${e.response?.statusCode} ${e.response?.data ?? e.message}',
+      );
     }
   }
 }

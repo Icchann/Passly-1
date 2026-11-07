@@ -24,6 +24,9 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
   static const double _chromeHeight = 96;
   static const double _minViewportSize = 200;
 
+  /// 切り出したアイコン画像の一辺（px）。
+  static const double _outputSize = 512;
+
   final GlobalKey _boundaryKey = GlobalKey();
   final TransformationController _controller = TransformationController();
 
@@ -80,10 +83,12 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
       final boundary =
           _boundaryKey.currentContext!.findRenderObject()
               as RenderRepaintBoundary;
-      final pixelRatio = (MediaQuery.of(
-        context,
-      ).devicePixelRatio).clamp(1.0, 3.0);
-      final image = await boundary.toImage(pixelRatio: pixelRatio * 1.5);
+      // 画面の解像度のまま切り出すと 1700px 四方ほどの PNG になり，写真だと
+      // 数 MB になってサーバーに断られる（400）ので，アイコンに十分な大きさにそろえる。
+      final viewportSize = boundary.size.width;
+      final image = await boundary.toImage(
+        pixelRatio: _outputSize / viewportSize,
+      );
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
       if (byteData == null) {

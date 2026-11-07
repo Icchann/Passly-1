@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/common/widgets/encounter_meta_pill.dart';
 import 'package:passly/common/widgets/loading_card_skeleton.dart';
+import 'package:passly/common/widgets/profile_section_card.dart';
 import 'package:passly/common/widgets/sns_link_buttons.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
@@ -111,14 +112,14 @@ class _ProfileBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: _EncounterCard(profile: profile),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 12),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 21),
+            padding: const EdgeInsets.symmetric(horizontal: 15),
             child: _AboutSection(profile: profile),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 21),
+            padding: const EdgeInsets.symmetric(horizontal: 15),
             child: _TechTagSection(profile: profile, myTechStack: myTechStack),
           ),
           const SizedBox(height: 24),
@@ -659,23 +660,19 @@ class _AboutSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = profile.about.isEmpty ? '自己紹介は未設定です' : profile.about;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionHeading('ABOUT'),
-        const SizedBox(height: 8),
-        Text(
-          text,
-          style: TextStyle(
-            color: profile.about.isEmpty
-                ? AppColors.textDisabled
-                : AppColors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            height: 16.8 / 14,
-          ),
+    return ProfileSectionCard(
+      title: '自己紹介',
+      child: Text(
+        text,
+        style: TextStyle(
+          color: profile.about.isEmpty
+              ? AppColors.textDisabled
+              : AppColors.textPrimary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.6,
         ),
-      ],
+      ),
     );
   }
 }
@@ -695,75 +692,60 @@ class _TechTagSection extends StatelessWidget {
         .where((t) => !commonLower.contains(t.toLowerCase()))
         .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const _SectionHeading('TECH TAG'),
-            if (common.isNotEmpty) ...[
-              const SizedBox(width: 10),
-              Text(
-                'あなたと同じタグが${common.length}つ',
-                style: const TextStyle(
-                  color: PasslyBrand.primaryDark,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  height: 1.4,
-                ),
+    return ProfileSectionCard(
+      title: 'タグ',
+      note: common.isEmpty ? null : 'あなたと同じタグが${common.length}つ',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (tags.isEmpty)
+            const Text(
+              '未設定',
+              style: TextStyle(
+                color: AppColors.textDisabled,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (tags.isEmpty)
-          const Text(
-            '未設定',
-            style: TextStyle(
-              color: AppColors.textDisabled,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 2),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 12,
+                children: [
+                  for (final tag in common)
+                    LabeledTagSticker(tag: tag, same: true),
+                  for (final tag in others) LabeledTagSticker(tag: tag),
+                ],
+              ),
             ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 2),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 12,
+          if (common.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
               children: [
-                for (final tag in common)
-                  LabeledTagSticker(tag: tag, same: true),
-                for (final tag in others) LabeledTagSticker(tag: tag),
-              ],
-            ),
-          ),
-        if (common.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                Icons.chat_bubble_outline_rounded,
-                size: 14,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  '次に会ったら「${common.first}好きなんですよね」と話しかけてみよう',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4,
+                const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '次に会ったら「${common.first}好きなんですよね」と話しかけてみよう',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

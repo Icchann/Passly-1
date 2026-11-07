@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/common/widgets/passly_circle_button.dart';
 import 'package:passly/common/widgets/passly_icon.dart';
+import 'package:passly/common/widgets/profile_section_card.dart';
 import 'package:passly/common/widgets/sns_link_buttons.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
@@ -16,7 +17,7 @@ import 'package:passly/features/user/data/tech_tag_catalog.dart';
 ///
 /// すれ違った人に見える相手プロフィールと同じ見た目にしている。
 /// 上から: カバー写真 + 右上 (友だち追加 / 設定) + アバター +
-/// 名前 / 一言 / 組織チップ + SNS ボタン + ABOUT / TECH TAG +
+/// 名前 / 一言 / 組織チップ + SNS ボタン + 自己紹介 / タグ（白いカード） +
 /// 「すれ違った人にもこの見た目で表示されます」+「プロフィールを編集」。
 ///
 /// 編集は別画面 (/mypage/edit, [ProfileEditScreen]) で行う。
@@ -65,12 +66,12 @@ class MyPageScreen extends ConsumerWidget {
                 ],
                 const SizedBox(height: PasslySpace.s24),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 21),
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: _AboutSection(about: user.about),
                 ),
-                const SizedBox(height: PasslySpace.s24),
+                const SizedBox(height: 12),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 21),
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: _TechTagSection(techStack: user.techStack),
                 ),
                 const SizedBox(height: 28),
@@ -291,24 +292,18 @@ class _AboutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionHeading('ABOUT'),
-        const SizedBox(height: PasslySpace.s8),
-        Text(
-          about.isEmpty ? '自己紹介は未設定です' : about,
-          style: TextStyle(
-            fontFamily: PasslyFont.family,
-            color: about.isEmpty
-                ? AppColors.textDisabled
-                : AppColors.textPrimary,
-            fontSize: 14,
-            fontWeight: PasslyFont.medium,
-            height: 16.8 / 14,
-          ),
+    return ProfileSectionCard(
+      title: '自己紹介',
+      child: Text(
+        about.isEmpty ? '自己紹介は未設定です' : about,
+        style: TextStyle(
+          fontFamily: PasslyFont.family,
+          color: about.isEmpty ? AppColors.textDisabled : AppColors.textPrimary,
+          fontSize: 14,
+          fontWeight: PasslyFont.medium,
+          height: 1.6,
         ),
-      ],
+      ),
     );
   }
 }
@@ -320,13 +315,9 @@ class _TechTagSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionHeading('TECH TAG'),
-        const SizedBox(height: PasslySpace.s8),
-        _TagWrap(tags: TechTagCatalog.parse(techStack)),
-      ],
+    return ProfileSectionCard(
+      title: 'タグ',
+      child: _TagWrap(tags: TechTagCatalog.parse(techStack)),
     );
   }
 }
@@ -438,25 +429,6 @@ class _EditProfileButton extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SectionHeading extends StatelessWidget {
-  final String label;
-  const _SectionHeading(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        fontFamily: PasslyFont.family,
-        color: AppColors.textPrimary,
-        fontSize: 16,
-        fontWeight: FontWeight.w900,
-        height: 19.2 / 16,
-      ),
     );
   }
 }

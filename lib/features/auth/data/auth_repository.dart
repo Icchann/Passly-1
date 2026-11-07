@@ -81,6 +81,7 @@ class AuthRepository {
     // 保護されたAPI呼び出し時にAuthorization: Bearerとして自動付与する。
     if (token != null && token.isNotEmpty) {
       await _storage.write(key: authTokenStorageKey, value: token);
+      AuthTokenCache.set(token);
     }
 
     // 認証成功後、ユーザー情報を取得して返す
@@ -146,5 +147,6 @@ class AuthRepository {
   Future<void> logout() async {
     await _storage.delete(key: 'user_id');
     await _storage.delete(key: authTokenStorageKey);
+    AuthTokenCache.clear();
   }
 }

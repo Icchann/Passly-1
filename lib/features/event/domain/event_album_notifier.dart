@@ -64,8 +64,20 @@ class EventAlbum {
 /// プロフィールの connpass ユーザー名で参加イベント（GET /users/:id/connpass-events）
 /// を取り、今日までのものは GET /users/:id/calendar/daily でその日に出会った人を
 /// 取って、人数と同じタグの人数を出す。
+///
+/// アカウントを作る前のイベントでは誰ともすれ違っていないので，日別 API は
+/// 呼ばない（connpass の参加履歴が多い人でも通信が増えないように）。
+/// 自分の情報はイベント一覧に使う id・タグ・登録日だけを見て，
+/// アイコンや自己紹介を変えただけでは取り直さない。
 final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
-  final me = ref.watch(authNotifierProvider).value;
+  final me = ref.watch(
+    authNotifierProvider.select((s) {
+      final u = s.value;
+      return u == null
+          ? null
+          : (id: u.id, techStack: u.techStack, createdAt: u.createdAt);
+    }),
+  );
   if (me == null) return const EventAlbum(past: []);
 
   final repo = ref.read(calendarRepositoryProvider);
@@ -93,8 +105,16 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
   final past = events.where((e) => !e.day.isAfter(today)).toList()
     ..sort((a, b) => b.startAt.compareTo(a.startAt));
 
+  final joined = me.createdAt == null
+      ? null
+      : () {
+          final local = AppTime.toAppLocal(me.createdAt!);
+          return DateTime(local.year, local.month, local.day);
+        }();
+
   final withPeople = await Future.wait(
     past.map((e) async {
+      if (!mayHaveEncounters(e.day, joined)) return e;
       try {
         final data = await repo.fetchDailyEncounters(
           userId: me.id,
@@ -102,9 +122,11 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
         );
         // 実バックエンドは encounter_users、デモは users で返す。
         final users =
-            (data['users'] as List? ?? data['encounter_users'] as List? ?? const [])
-            .whereType<Map>()
-            .toList();
+            (data['users'] as List? ??
+                    data['encounter_users'] as List? ??
+                    const [])
+                .whereType<Map>()
+                .toList();
         return EventSummary(
           id: e.id,
           name: e.name,
@@ -142,6 +164,11 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
     past: withPeople.where((e) => e.day != today).toList(),
   );
 });
+
+/// [day] のイベントで誰かとすれ違っている可能性があるか。
+/// アカウントを作った日 [joined] より前なら無い。[joined] が分からなければある扱い。
+bool mayHaveEncounters(DateTime day, DateTime? joined) =>
+    joined == null || !day.isBefore(joined);
 
 /// 日別 API や /encounters/day/:date に渡す YYYY-MM-DD。
 String eventDateParam(DateTime d) =>

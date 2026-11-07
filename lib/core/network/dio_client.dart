@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:passly/core/config/feature_flags.dart';
@@ -15,6 +16,38 @@ final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
 /// 認証トークン(JWT)をセキュアストレージに保存する際のキー。
 /// AuthRepository.login()で保存し、このファイルのインターセプターで読み出す。
 const authTokenStorageKey = 'auth_token';
+
+/// 認証トークンのメモリ上の控え。
+///
+/// iOS の Keychain 読み出しは 1 回ごとに時間がかかるので，通信のたびに
+/// セキュアストレージを読まないよう，一度読んだ値をここに持っておく。
+/// ログイン（保存）・ログアウト（削除）のときに [AuthRepository] が書き換える。
+abstract final class AuthTokenCache {
+  static String? _token;
+  static bool _loaded = false;
+
+  static void set(String? token) {
+    _token = token;
+    _loaded = true;
+  }
+
+  static void clear() => set(null);
+
+  /// 控えを持っていない状態に戻す（テスト用）。
+  @visibleForTesting
+  static void forget() {
+    _token = null;
+    _loaded = false;
+  }
+
+  /// 控えがあればそれを，なければストレージから読んで控える。
+  static Future<String?> read(FlutterSecureStorage storage) async {
+    if (_loaded) return _token;
+    final token = await storage.read(key: authTokenStorageKey);
+    set(token);
+    return token;
+  }
+}
 
 /// Dioインスタンスのプロバイダー
 /// 2026-09-18: バックエンドがJWT認証に対応したため、Bearerトークンの自動付与と
@@ -40,9 +73,9 @@ final dioProvider = Provider<Dio>((ref) {
     InterceptorsWrapper(
       onRequest: (options, handler) async {
         startNetworkActivity(ref);
-        final token = await ref
-            .read(secureStorageProvider)
-            .read(key: authTokenStorageKey);
+        final token = await AuthTokenCache.read(
+          ref.read(secureStorageProvider),
+        );
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }

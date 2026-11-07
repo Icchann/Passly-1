@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:passly/common/widgets/sized_network_image.dart';
 
 import 'package:passly/common/widgets/passly_icon.dart';
 import 'package:passly/common/widgets/press_feedback.dart';
@@ -150,11 +151,10 @@ class _Avatar extends StatelessWidget {
         width: 49.52,
         height: 49.52,
         child: url.isNotEmpty
-            ? Image.network(
-                url,
-                fit: BoxFit.cover,
+            ? SizedNetworkImage(
+                url: url,
                 gaplessPlayback: true,
-                errorBuilder: (_, _, _) => const _AvatarFallback(),
+                fallback: (_) => const _AvatarFallback(),
               )
             : const _AvatarFallback(),
       ),

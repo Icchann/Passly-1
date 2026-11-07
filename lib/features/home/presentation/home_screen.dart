@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:passly/common/widgets/sized_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -402,11 +403,7 @@ class _FeaturedAvatar extends StatelessWidget {
         width: 63,
         height: 63,
         child: url.isNotEmpty
-            ? Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => fallback,
-              )
+            ? SizedNetworkImage(url: url, fallback: (_) => fallback)
             : fallback,
       ),
     );

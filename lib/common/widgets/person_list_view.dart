@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:passly/common/widgets/sized_network_image.dart';
 import 'package:passly/common/widgets/loading_card_skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -266,11 +267,7 @@ class _Avatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: iconUrl.isNotEmpty
-            ? Image.network(
-                iconUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _fallback(),
-              )
+            ? SizedNetworkImage(url: iconUrl, fallback: (_) => _fallback())
             : _fallback(),
       ),
     );

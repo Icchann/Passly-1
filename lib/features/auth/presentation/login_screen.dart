@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:passly/common/widgets/text_field_context_menu.dart';
-import 'package:passly/core/constants/app_colors.dart';
+import 'package:passly/common/widgets/tag_sticker.dart';
+import 'package:passly/core/constants/passly_tokens.dart';
 import 'package:passly/core/network/network_activity_provider.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
+import 'package:passly/features/auth/presentation/widgets/auth_widgets.dart';
 
 /// ログイン画面Widget
+///
+/// 上にタグのステッカーを散らしてアプリのロゴを置き，その下にメールとパスワード。
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -55,38 +58,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           }
         },
         error: (error, _) {
-          // エラーメッセージを解析してユーザーフレンドリーなメッセージに変換
-          String message = _parseErrorMessage(error);
-          setState(() => _errorMessage = message);
+          setState(() => _errorMessage = _parseErrorMessage(error));
         },
         loading: () {},
       );
     });
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundWhite,
+      backgroundColor: PasslyBg.defaultBg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
           child: Form(
             key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 48),
-                if (_errorMessage != null) ...[
-                  _buildErrorBanner(),
+            child: AutofillGroup(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _StickerHero(),
+                  const SizedBox(height: 28),
+                  if (_errorMessage != null) ...[
+                    AuthErrorBanner(
+                      message: _errorMessage!,
+                      onClose: () => setState(() => _errorMessage = null),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  AuthTextField(
+                    controller: _emailController,
+                    label: 'メールアドレス',
+                    hint: 'example@passly.app',
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    onChanged: (_) => _clearErrorIfNeeded(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'メールアドレスを入力してください';
+                      }
+                      if (!value.contains('@')) return '正しいメールアドレスを入力してください';
+                      return null;
+                    },
+                  ),
                   const SizedBox(height: 16),
+                  AuthTextField(
+                    controller: _passwordController,
+                    label: 'パスワード',
+                    hint: '6文字以上',
+                    obscure: !_isPasswordVisible,
+                    onToggleObscure: () => setState(
+                      () => _isPasswordVisible = !_isPasswordVisible,
+                    ),
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const [AutofillHints.password],
+                    onChanged: (_) => _clearErrorIfNeeded(),
+                    onSubmitted: (_) => _handleLogin(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'パスワードを入力してください';
+                      }
+                      if (value.length < 6) return 'パスワードは6文字以上で入力してください';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  AuthPrimaryButton(
+                    label: 'ログイン',
+                    loading: authState.isLoading,
+                    onPressed: _handleLogin,
+                  ),
+                  const SizedBox(height: 16),
+                  AuthTextLink(
+                    lead: 'はじめての方は ',
+                    action: 'アカウントを作成',
+                    onTap: () => context.push('/signup'),
+                  ),
                 ],
-                _buildEmailField(),
-                const SizedBox(height: 16),
-                _buildPasswordField(),
-                const SizedBox(height: 32),
-                _buildLoginButton(authState),
-                const SizedBox(height: 16),
-                _buildSignUpLink(),
-              ],
+              ),
             ),
           ),
         ),
@@ -122,169 +171,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return 'ログインに失敗しました。入力内容を確認してください';
   }
 
-  /// エラーバナーWidget
-  Widget _buildErrorBanner() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.errorBackground,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _errorMessage!,
-              style: const TextStyle(
-                color: AppColors.errorDark,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => setState(() => _errorMessage = null),
-            child: const Icon(
-              Icons.close,
-              color: AppColors.textSecondary,
-              size: 20,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// ヘッダー（ロゴとタイトル）
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        Image.asset('assets/images/app_icon.png', width: 80, height: 80),
-        const SizedBox(height: 16),
-        const Text(
-          'Passly',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'ログインしてすれ違いを始めよう',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-        ),
-      ],
-    );
-  }
-
-  /// メールアドレス入力フィールド
-  Widget _buildEmailField() {
-    return TextFormField(
-      contextMenuBuilder: passlyContextMenuBuilder,
-      controller: _emailController,
-      style: const TextStyle(color: AppColors.textPrimary),
-      keyboardType: TextInputType.emailAddress,
-      onChanged: (_) => _clearErrorIfNeeded(),
-      decoration: _inputDecoration(
-        label: 'メールアドレス',
-        icon: Icons.email_outlined,
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'メールアドレスを入力してください';
-        if (!value.contains('@')) return '正しいメールアドレスを入力してください';
-        return null;
-      },
-    );
-  }
-
-  /// パスワード入力フィールド
-  Widget _buildPasswordField() {
-    return TextFormField(
-      contextMenuBuilder: passlyContextMenuBuilder,
-      controller: _passwordController,
-      obscureText: !_isPasswordVisible,
-      style: const TextStyle(color: AppColors.textPrimary),
-      onChanged: (_) => _clearErrorIfNeeded(),
-      decoration: _inputDecoration(
-        label: 'パスワード',
-        icon: Icons.lock_outline,
-        suffixIcon: IconButton(
-          icon: Icon(
-            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-            color: AppColors.textSecondary,
-          ),
-          onPressed: () =>
-              setState(() => _isPasswordVisible = !_isPasswordVisible),
-        ),
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'パスワードを入力してください';
-        if (value.length < 6) return 'パスワードは6文字以上で入力してください';
-        return null;
-      },
-    );
-  }
-
-  /// ログインボタン
-  Widget _buildLoginButton(AsyncValue authState) {
-    final isLoading = authState.isLoading;
-    return ElevatedButton(
-      onPressed: isLoading ? null : _handleLogin,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Text(
-              'ログイン',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-    );
-  }
-
-  /// アカウント作成画面へのリンク
-  Widget _buildSignUpLink() {
-    return TextButton(
-      onPressed: () => context.push('/signup'),
-      child: RichText(
-        text: const TextSpan(
-          text: 'アカウントをお持ちでない方は',
-          style: TextStyle(color: AppColors.textSecondary),
-          children: [
-            TextSpan(
-              text: '新規登録',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// ログイン処理の実行
   void _handleLogin() {
+    if (ref.read(authNotifierProvider).isLoading) return;
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     ref
         .read(authNotifierProvider.notifier)
         .login(
@@ -292,40 +183,82 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           password: _passwordController.text,
         );
   }
+}
 
-  /// 入力フィールドの共通デコレーション
-  InputDecoration _inputDecoration({
-    required String label,
-    required IconData icon,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
-      prefixIcon: Icon(icon, color: AppColors.textSecondary),
-      suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: AppColors.backgroundGrey,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.divider),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent),
+/// ロゴのまわりにタグのステッカーを散らした上の部分。
+class _StickerHero extends StatelessWidget {
+  const _StickerHero();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 250,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // ステッカーは左右の端に寄せて，文字には重ねない
+          Positioned(left: 4, top: 40, child: _Deco('Figma', 56)),
+          Positioned(right: 0, top: 28, child: _Deco('Flutter', 60)),
+          Positioned(left: 0, top: 128, child: _Deco('Swift', 42)),
+          Positioned(right: 4, top: 120, child: _Deco('Go', 48)),
+          Positioned(left: 0, right: 0, top: 64, child: _Title()),
+        ],
       ),
     );
   }
+}
+
+class _Title extends StatelessWidget {
+  const _Title();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Image.asset(
+            'assets/images/app_icon.png',
+            width: 84,
+            height: 84,
+          ),
+        ),
+        const SizedBox(height: 18),
+        const Text(
+          'おかえりなさい',
+          style: TextStyle(
+            fontFamily: PasslyFont.family,
+            color: PasslyText.primary,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            'すれ違った人のタグが，ステッカーで集まります',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: PasslyFont.family,
+              color: PasslyText.secondary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Deco extends StatelessWidget {
+  final String tag;
+  final double size;
+
+  const _Deco(this.tag, this.size);
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: TagSticker(tag: tag, size: size),
+  );
 }

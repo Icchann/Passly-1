@@ -15,6 +15,9 @@ class EventSummary {
   final String location;
   final String imageUrl;
 
+  /// イベントのページ（connpass など）。なければ空文字。
+  final String url;
+
   /// そのイベントの日に出会った人（アイコン用）。
   final List<EventMetUser> metUsers;
 
@@ -27,6 +30,7 @@ class EventSummary {
     required this.startAt,
     required this.location,
     required this.imageUrl,
+    this.url = '',
     this.metUsers = const [],
     this.sameTagCount = 0,
   });
@@ -46,13 +50,13 @@ class EventAlbum {
   /// 今日のイベント（出会った人の数つき）。なければ null。
   final EventSummary? today;
 
-  /// いちばん近い、これから参加するイベント。なければ null。
-  final EventSummary? upcoming;
+  /// これから参加するイベント（明日から）。日付の早い順。
+  final List<EventSummary> upcoming;
 
   /// 参加したイベント（昨日まで）。新しい順。
   final List<EventSummary> past;
 
-  const EventAlbum({this.today, required this.upcoming, required this.past});
+  const EventAlbum({this.today, this.upcoming = const [], required this.past});
 }
 
 /// イベント画面（旧カレンダー）のデータ。
@@ -61,7 +65,7 @@ class EventAlbum {
 /// でその日に出会った人を取って、人数と同じタグの人数を出す。
 final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
   final me = ref.watch(authNotifierProvider).value;
-  if (me == null) return const EventAlbum(upcoming: null, past: []);
+  if (me == null) return const EventAlbum(past: []);
 
   final repo = ref.read(calendarRepositoryProvider);
   final now = AppTime.nowLocal();
@@ -78,6 +82,7 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
         startAt: AppTime.toAppLocal(startUtc),
         location: raw['location']?.toString() ?? '',
         imageUrl: raw['image_url']?.toString() ?? '',
+        url: (raw['event_url'] ?? raw['url'])?.toString() ?? '',
       ),
     );
   }
@@ -103,6 +108,7 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
           startAt: e.startAt,
           location: e.location,
           imageUrl: e.imageUrl,
+          url: e.url,
           metUsers: [
             for (final u in users)
               EventMetUser(
@@ -129,7 +135,7 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
   final todays = withPeople.where((e) => e.day == today).toList();
   return EventAlbum(
     today: todays.isEmpty ? null : todays.first,
-    upcoming: upcoming.isEmpty ? null : upcoming.first,
+    upcoming: upcoming,
     past: withPeople.where((e) => e.day != today).toList(),
   );
 });

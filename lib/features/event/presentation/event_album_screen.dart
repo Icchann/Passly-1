@@ -10,13 +10,15 @@ import 'package:passly/core/constants/passly_tokens.dart';
 import 'package:passly/core/utils/app_time.dart';
 import 'package:passly/features/event/domain/event_album_notifier.dart';
 import 'package:passly/features/event/domain/favorite_next_events.dart';
+import 'package:passly/features/user/domain/user_model.dart';
 
 /// イベント画面（旧カレンダー）。
 ///
-/// Figma「① イベント 2列だけ」(node 2050:2143)。
-/// イベントの日は一番上に「今日・すれ違い中」のカード（node 2050:2355）。
-/// 「これから」の下に，お気に入りの人が次に参加するイベント（node 2077:2268）。
-/// 上に「これから」のイベント、その下に参加したイベントを新しい順に 2 列で並べる。
+/// 上の「これから」に，今日のイベント（参加中）・自分が参加予定のイベント・
+/// お気に入りの人が参加予定のイベントを並べる（Figma 2086:2285「案A＋C」）。
+/// 参加中は緑の帯，自分の予定はオレンジの帯，お気に入りの人の予定は点線の枠。
+/// どのカードも押すとイベントのページを開く。
+/// その下に参加したイベントを新しい順に 2 列で並べる（node 2050:2143）。
 /// カードを押すとそのイベントで出会った人の一覧へ。
 class EventAlbumScreen extends ConsumerWidget {
   const EventAlbumScreen({super.key});
@@ -58,15 +60,7 @@ class EventAlbumScreen extends ConsumerWidget {
                   loading: () => const [LoadingCardsSkeleton()],
                   error: (e, _) => [const _Message(text: 'イベントの取得に失敗しました')],
                   data: (data) => [
-                    if (data.today != null) ...[
-                      _TodayCard(event: data.today!),
-                      const SizedBox(height: 12),
-                    ],
-                    if (data.upcoming != null) ...[
-                      _UpcomingCard(event: data.upcoming!),
-                      const SizedBox(height: 20),
-                    ],
-                    const _FavoriteNextEvents(),
+                    _ComingSection(album: data),
                     const _SectionTitle('参加したイベント'),
                     const SizedBox(height: 12),
                     if (data.past.isEmpty)
@@ -89,7 +83,6 @@ void _openEvent(BuildContext context, EventSummary e) => e.id != null
     ? context.push('/events/${e.id}')
     : context.push('/encounters/day/${eventDateParam(e.day)}');
 
-const Color _upcomingAccent = Color(0xFFF59E0A);
 const Color _sameTagBg = Color(0xFFE8F5E8);
 const Color _sameTagText = Color(0xFF1F7A1F);
 
@@ -111,195 +104,115 @@ const List<List<Color>> _fallbackGradients = [
   [Color(0xFFA7F3D0), Color(0xFF0EA5A4)],
 ];
 
-class _UpcomingCard extends StatelessWidget {
-  final EventSummary event;
+/// 「これから」のカードの種類。色と右上のラベルで見分ける（Figma 2086:2285）。
+enum _ComingKind {
+  /// 今日のイベント（参加中）。緑の帯。
+  now,
 
-  const _UpcomingCard({required this.event});
+  /// 自分が参加予定のイベント。オレンジの帯。
+  mine,
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 56,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: PasslyBg.surface,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: _cardShadow,
-      ),
-      child: Row(
-        children: [
-          Container(width: 6, color: _upcomingAccent),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'これから',
-                  style: TextStyle(
-                    fontFamily: PasslyFont.family,
-                    fontSize: 11,
-                    fontWeight: PasslyFont.bold,
-                    color: _upcomingAccent,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${EventAlbumScreen.dateLabel(event.startAt)}${event.name}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: PasslyFont.family,
-                    fontSize: 14,
-                    fontWeight: PasslyFont.bold,
-                    color: PasslyText.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(left: 8, right: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3E2),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Text(
-              '予定',
-              style: TextStyle(
-                fontFamily: PasslyFont.family,
-                fontSize: 11,
-                fontWeight: PasslyFont.bold,
-                color: Color(0xFFB45309),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  /// お気に入りの人が参加予定で，自分はまだのイベント。点線の枠。
+  favorite,
 }
 
-/// イベント当日のカード（Figma node 2050:2355）。
-/// 「今日・すれ違い中」と今日出会った人数を出す。押すとそのイベントへ。
-class _TodayCard extends StatelessWidget {
-  final EventSummary event;
+class _ComingItem {
+  final _ComingKind kind;
+  final String title;
 
-  const _TodayCard({required this.event});
+  /// 開始日時（日本時間）。
+  final DateTime startAt;
+  final String url;
+  final EventSummary? event;
 
-  @override
-  Widget build(BuildContext context) {
-    final met = event.metUsers.length;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _openEvent(context, event),
-      child: PressFeedback(
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 56),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: PasslyBg.surface,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: _cardShadow,
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(width: 6, color: PasslyBrand.primary),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '今日・すれ違い中',
-                          style: TextStyle(
-                            fontFamily: PasslyFont.family,
-                            fontSize: 11,
-                            fontWeight: PasslyFont.bold,
-                            color: PasslyBrand.primaryDark,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${EventAlbumScreen.dateLabel(event.startAt)}${event.name}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: PasslyFont.family,
-                            fontSize: 14,
-                            fontWeight: PasslyFont.bold,
-                            color: PasslyText.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 8, right: 14),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _sameTagBg,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '$met人と出会った',
-                      style: const TextStyle(
-                        fontFamily: PasslyFont.family,
-                        fontSize: 11,
-                        fontWeight: PasslyFont.bold,
-                        color: _sameTagText,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+  /// このイベントに参加予定のお気に入りの人。
+  final List<UserModel> favorites;
+
+  const _ComingItem({
+    required this.kind,
+    required this.title,
+    required this.startAt,
+    this.url = '',
+    this.event,
+    this.favorites = const [],
+  });
+}
+
+/// 「これから」に並べるものを作る。参加中を先頭に，あとは日付の早い順。
+/// お気に入りの人の予定が自分の予定と同じイベントなら，自分の予定のカードにまとめる。
+List<_ComingItem> _comingItems(
+  EventAlbum album,
+  List<FavoriteNextEvent> favorites,
+) {
+  bool same(FavoriteNextEvent f, EventSummary e) {
+    if (f.event.url.isNotEmpty && f.event.url == e.url) return true;
+    final d = AppTime.toAppLocal(f.event.startedAt);
+    return f.event.title.trim() == e.name.trim() &&
+        DateTime(d.year, d.month, d.day) == e.day;
+  }
+
+  List<UserModel> favoritesOf(EventSummary e) => [
+    for (final f in favorites)
+      if (same(f, e)) ...f.users,
+  ];
+
+  final mine = [if (album.today != null) album.today!, ...album.upcoming];
+  final rest = <_ComingItem>[
+    for (final e in album.upcoming)
+      _ComingItem(
+        kind: _ComingKind.mine,
+        title: e.name,
+        startAt: e.startAt,
+        url: e.url,
+        event: e,
+        favorites: favoritesOf(e),
+      ),
+    for (final f in favorites)
+      if (!mine.any((e) => same(f, e)))
+        _ComingItem(
+          kind: _ComingKind.favorite,
+          title: f.event.title,
+          startAt: AppTime.toAppLocal(f.event.startedAt),
+          url: f.event.url,
+          favorites: f.users,
         ),
+  ]..sort((a, b) => a.startAt.compareTo(b.startAt));
+  return [
+    if (album.today != null)
+      _ComingItem(
+        kind: _ComingKind.now,
+        title: album.today!.name,
+        startAt: album.today!.startAt,
+        url: album.today!.url,
+        event: album.today,
+        favorites: favoritesOf(album.today!),
       ),
-    );
-  }
+    ...rest,
+  ];
 }
 
-/// 「お気に入りの人の次のイベント」。予定がある人がいなければ何も出さない。
-class _FavoriteNextEvents extends ConsumerWidget {
-  const _FavoriteNextEvents();
+/// 「これから」の見出しとカード。何もなければ出さない。
+class _ComingSection extends ConsumerWidget {
+  final EventAlbum album;
+
+  const _ComingSection({required this.album});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final items = ref.watch(favoriteNextEventsProvider).asData?.value ?? [];
+    final favorites =
+        ref.watch(favoriteNextEventsProvider).asData?.value ?? const [];
+    final items = _comingItems(album, favorites);
     if (items.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle('お気に入りの人の次のイベント'),
-          const SizedBox(height: 2),
-          const Text(
-            'お気に入りに追加した人が参加予定のイベント',
-            style: TextStyle(
-              fontFamily: PasslyFont.family,
-              fontSize: 11,
-              color: PasslyText.secondary,
-            ),
-          ),
+          const _SectionTitle('これから'),
           const SizedBox(height: 10),
           for (final (i, item) in items.indexed) ...[
             if (i > 0) const SizedBox(height: 10),
-            _FavoriteNextEventCard(item: item),
+            _ComingCard(item: item),
           ],
         ],
       ),
@@ -307,125 +220,278 @@ class _FavoriteNextEvents extends ConsumerWidget {
   }
 }
 
-class _FavoriteNextEventCard extends StatelessWidget {
-  final FavoriteNextEvent item;
+const Color _nowColor = PasslyBrand.primary;
+const Color _nowText = Color(0xFF2E7D32);
+const Color _mineColor = Color(0xFFF59E0A);
+const Color _mineText = Color(0xFFB45309);
+const Color _mineBadgeBg = Color(0xFFFEF3E2);
+const Color _favoriteChipBg = Color(0xFFFEF3C7);
+const Color _favoriteChipText = Color(0xFF92400E);
+const Color _star = Color(0xFFF5B400);
 
-  const _FavoriteNextEventCard({required this.item});
+class _ComingCard extends StatelessWidget {
+  final _ComingItem item;
+
+  const _ComingCard({required this.item});
+
+  static const List<String> _weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+
+  String get _dateText {
+    final d = item.startAt;
+    final date = '${d.month}/${d.day}（${_weekdays[d.weekday - 1]}）';
+    if (item.kind != _ComingKind.now) return date;
+    final time = '${d.hour}:${d.minute.toString().padLeft(2, '0')}〜';
+    return '$date$time';
+  }
+
+  void _open(BuildContext context) {
+    if (item.url.isNotEmpty) {
+      _openUrl(item.url);
+    } else if (item.event != null) {
+      _openEvent(context, item.event!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final e = item.event;
-    final d = AppTime.toAppLocal(e.startedAt);
-    final names = item.users
-        .map((u) => u.name.isEmpty ? '名前未設定' : u.name)
-        .join('・');
-    final canOpen = e.url.isNotEmpty;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: canOpen ? () => _openUrl(e.url) : null,
-      child: PressFeedback(
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: PasslyBg.surface,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: _cardShadow,
-          ),
-          child: Row(
+    final kind = item.kind;
+    final isFavorite = kind == _ComingKind.favorite;
+    final dateColor = switch (kind) {
+      _ComingKind.now => _nowText,
+      _ComingKind.mine => _mineText,
+      _ComingKind.favorite => PasslyText.secondary,
+    };
+    final content = Padding(
+      padding: EdgeInsets.fromLTRB(isFavorite ? 16 : 14, 11, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: PasslyBrand.primarySurface,
-                  borderRadius: BorderRadius.circular(12),
+              if (isFavorite) ...[
+                const _SmallLabel(
+                  text: '★ お気に入り',
+                  color: _favoriteChipText,
+                  background: _favoriteChipBg,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${d.month}月',
-                      style: const TextStyle(
-                        fontFamily: PasslyFont.family,
-                        fontSize: 10,
-                        fontWeight: PasslyFont.bold,
-                        color: PasslyBrand.primaryDark,
-                      ),
-                    ),
-                    Text(
-                      '${d.day}',
-                      style: const TextStyle(
-                        fontFamily: PasslyFont.family,
-                        fontSize: 18,
-                        fontWeight: PasslyFont.bold,
-                        color: PasslyText.primary,
-                        height: 1.1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      e.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: PasslyFont.family,
-                        fontSize: 14,
-                        fontWeight: PasslyFont.bold,
-                        color: PasslyText.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        _AvatarStack(
-                          users: [
-                            for (final u in item.users)
-                              EventMetUser(id: u.id, iconUrl: u.iconUrl),
-                          ],
-                          max: 3,
-                          size: 20,
-                          step: 13,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '$names が参加予定',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: PasslyFont.family,
-                              fontSize: 11,
-                              fontWeight: PasslyFont.medium,
-                              color: PasslyText.secondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (canOpen) ...[
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: PasslyText.tertiary,
-                ),
+                const SizedBox(width: 6),
               ],
+              Expanded(
+                child: Text(
+                  _dateText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: PasslyFont.family,
+                    fontSize: 11,
+                    fontWeight: PasslyFont.bold,
+                    color: dateColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusBadge(kind: kind),
             ],
           ),
+          const SizedBox(height: 3),
+          Text(
+            item.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: PasslyFont.family,
+              fontSize: 15,
+              fontWeight: PasslyFont.bold,
+              color: PasslyText.primary,
+            ),
+          ),
+          if (_whoText() case final who?) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _AvatarStack(users: _whoAvatars(), max: 3, size: 18, step: 12),
+                const SizedBox(width: 6),
+                if (item.favorites.isNotEmpty) ...[
+                  const Icon(Icons.star_rounded, size: 14, color: _star),
+                  const SizedBox(width: 2),
+                ],
+                Expanded(
+                  child: Text(
+                    who,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: PasslyFont.family,
+                      fontSize: 11,
+                      fontWeight: PasslyFont.medium,
+                      color: PasslyText.secondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final Widget card;
+    if (isFavorite) {
+      card = CustomPaint(
+        painter: const _DashedBorderPainter(
+          color: Color(0xFFD1D5DB),
+          radius: 14,
+        ),
+        child: content,
+      );
+    } else {
+      card = Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: PasslyBg.surface,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: _cardShadow,
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 6,
+                color: kind == _ComingKind.now ? _nowColor : _mineColor,
+              ),
+              Expanded(child: content),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final canOpen = item.url.isNotEmpty || item.event != null;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: canOpen ? () => _open(context) : null,
+      child: PressFeedback(child: card),
+    );
+  }
+
+  /// 参加中は出会った人数，ほかは参加予定のお気に入りの人。
+  String? _whoText() {
+    if (item.kind == _ComingKind.now && item.favorites.isEmpty) {
+      return '${item.event?.metUsers.length ?? 0}人と出会った';
+    }
+    if (item.favorites.isEmpty) return null;
+    final names = item.favorites
+        .map((u) => '${u.name.isEmpty ? '名前未設定' : u.name}さん')
+        .join('，');
+    return '$namesが参加予定';
+  }
+
+  List<EventMetUser> _whoAvatars() {
+    if (item.kind == _ComingKind.now && item.favorites.isEmpty) {
+      return item.event?.metUsers ?? const [];
+    }
+    return [
+      for (final u in item.favorites)
+        EventMetUser(id: u.id, iconUrl: u.iconUrl),
+    ];
+  }
+}
+
+/// 右上のラベル（参加中／参加予定／参加してみる）。
+class _StatusBadge extends StatelessWidget {
+  final _ComingKind kind;
+
+  const _StatusBadge({required this.kind});
+
+  @override
+  Widget build(BuildContext context) {
+    final (text, fg, bg, outline) = switch (kind) {
+      _ComingKind.now => ('参加中', Colors.white, _nowColor, null),
+      _ComingKind.mine => ('参加予定', _mineText, _mineBadgeBg, null),
+      _ComingKind.favorite => ('参加してみる', _nowText, null, _nowColor),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: outline == null ? null : Border.all(color: outline),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: PasslyFont.family,
+          fontSize: 11,
+          fontWeight: PasslyFont.bold,
+          color: fg,
         ),
       ),
     );
   }
+}
+
+class _SmallLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+  final Color background;
+
+  const _SmallLabel({
+    required this.text,
+    required this.color,
+    required this.background,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: PasslyFont.family,
+          fontSize: 10,
+          fontWeight: PasslyFont.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+/// 点線の角丸の枠（お気に入りの人の予定のカード）。
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    ).deflate(0.75);
+    canvas.drawRRect(rrect, Paint()..color = PasslyBg.surface);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    for (final metric in (Path()..addRRect(rrect)).computeMetrics()) {
+      for (double d = 0; d < metric.length; d += 9) {
+        canvas.drawPath(metric.extractPath(d, d + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 Future<void> _openUrl(String url) async {

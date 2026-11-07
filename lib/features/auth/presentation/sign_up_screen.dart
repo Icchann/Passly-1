@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:passly/common/widgets/text_field_context_menu.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
 
@@ -206,6 +207,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
+              contextMenuBuilder: passlyContextMenuBuilder,
               controller: _passwordController,
               obscureText: !_isPasswordVisible,
               style: const TextStyle(color: AppColors.textPrimary),
@@ -258,6 +260,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
+              contextMenuBuilder: passlyContextMenuBuilder,
               controller: _passwordConfirmationController,
               obscureText: !_isPasswordConfirmationVisible,
               style: const TextStyle(color: AppColors.textPrimary),
@@ -390,6 +393,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     TextInputType keyboardType = TextInputType.text,
   }) {
     return TextFormField(
+      contextMenuBuilder: passlyContextMenuBuilder,
       controller: controller,
       style: const TextStyle(color: AppColors.textPrimary),
       keyboardType: keyboardType,

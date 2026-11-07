@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:passly/common/widgets/text_field_context_menu.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/network/network_activity_provider.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
@@ -183,6 +184,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// メールアドレス入力フィールド
   Widget _buildEmailField() {
     return TextFormField(
+      contextMenuBuilder: passlyContextMenuBuilder,
       controller: _emailController,
       style: const TextStyle(color: AppColors.textPrimary),
       keyboardType: TextInputType.emailAddress,
@@ -202,6 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// パスワード入力フィールド
   Widget _buildPasswordField() {
     return TextFormField(
+      contextMenuBuilder: passlyContextMenuBuilder,
       controller: _passwordController,
       obscureText: !_isPasswordVisible,
       style: const TextStyle(color: AppColors.textPrimary),

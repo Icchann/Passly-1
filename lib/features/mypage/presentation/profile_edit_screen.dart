@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:passly/common/widgets/text_field_context_menu.dart';
 import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
@@ -810,6 +811,7 @@ class _LabeledField extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         TextField(
+          contextMenuBuilder: passlyContextMenuBuilder,
           controller: controller,
           maxLines: maxLines,
           minLines: maxLines > 1 ? 3 : 1,
@@ -886,6 +888,7 @@ class _TagSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasText = controller.text.isNotEmpty;
     return TextField(
+      contextMenuBuilder: passlyContextMenuBuilder,
       controller: controller,
       textInputAction: TextInputAction.search,
       style: const TextStyle(

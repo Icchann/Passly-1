@@ -358,7 +358,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   _Card(
                     children: [
                       _LabeledField(
-                        label: 'ABOUT',
+                        label: '自己紹介文',
                         controller: _about,
                         max: _aboutMax,
                         maxLines: 5,
@@ -367,7 +367,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  _Heading('TECH TAG', sub: '選んだタグ ${_tags.length}'),
+                  _Heading('タグ', sub: '選んだタグ ${_tags.length}'),
                   _Card(
                     children: [
                       _TagSearchField(controller: _search),
@@ -392,7 +392,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const _Heading('LINK'),
+                  const _Heading('リンク'),
                   _Card(
                     children: [
                       _LabeledField(

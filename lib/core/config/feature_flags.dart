@@ -7,7 +7,9 @@ abstract final class FeatureFlags {
   static const bool useMockCloseFriends = false;
 
   /// GET /events/:id（イベント詳細と参加者一覧）にモック実装を使う。
-  static const bool useMockEventDetail = true;
+  /// 2026-11-06 にバックエンドが connpass v2 から 1 件取る実装になったため実 API に切替。
+  /// 参加者一覧は connpass から取れないため空で返る。
+  static const bool useMockEventDetail = false;
 
   /// デモ動画用。`--dart-define=DEMO_MODE=true` で起動したときだけ true。
   /// サーバーへは通信せず、lib/demo/ のダミーデータで動く（ログインも不要）。

@@ -94,7 +94,7 @@ void main() {
         await tester.enterText(find.byType(TextFormField).at(0), 'パスリー たろう');
         await tester.enterText(find.byType(TextFormField).at(1), 'passly_taro');
         await tester.pump();
-        expect(find.text('@passly_taro'), findsOneWidget);
+        expect(find.text('すれ違った人にはこう見えます'), findsNothing);
         await tester.tap(find.text('つぎへ'));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);

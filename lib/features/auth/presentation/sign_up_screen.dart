@@ -312,8 +312,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         return null;
       },
     ),
-    const SizedBox(height: 20),
-    _NamePreview(name: _nameController, id: _idController),
   ];
 
   List<Widget> _connpassFields() => [
@@ -425,104 +423,6 @@ class _StepHeader extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-/// 「すれ違った人にはこう見えます」のプレビュー。
-class _NamePreview extends StatelessWidget {
-  final TextEditingController name;
-  final TextEditingController id;
-
-  const _NamePreview({required this.name, required this.id});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: BoxDecoration(
-        color: PasslyBrand.primarySurface,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'すれ違った人にはこう見えます',
-            style: TextStyle(
-              fontFamily: PasslyFont.family,
-              color: PasslyBrand.primaryDark,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ListenableBuilder(
-            listenable: Listenable.merge([name, id]),
-            builder: (context, _) {
-              final shownName = name.text.trim().isEmpty
-                  ? '表示名'
-                  : name.text.trim();
-              final shownId = id.text.trim().isEmpty
-                  ? 'userid'
-                  : id.text.trim();
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: PasslyBg.surface,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: PasslyBrand.primaryMuted,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            shownName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: PasslyFont.family,
-                              color: PasslyText.primary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            '@$shownId',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: PasslyFont.family,
-                              color: PasslyText.secondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
         ],
       ),
     );

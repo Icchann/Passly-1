@@ -128,19 +128,6 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
   );
 });
 
-/// 参加したイベントを 2 列で並べるか（false なら 1 列の大きいカード）。
-/// アプリを開いている間だけ覚える。
-final eventAlbumGridProvider = NotifierProvider<EventAlbumGridNotifier, bool>(
-  EventAlbumGridNotifier.new,
-);
-
-class EventAlbumGridNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void set(bool grid) => state = grid;
-}
-
 /// 日別 API や /encounters/day/:date に渡す YYYY-MM-DD。
 String eventDateParam(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

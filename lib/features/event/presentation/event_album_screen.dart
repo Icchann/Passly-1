@@ -10,10 +10,9 @@ import 'package:passly/features/event/domain/event_album_notifier.dart';
 
 /// イベント画面（旧カレンダー）。
 ///
-/// Figma「カレンダー案A3：2列＋大きい表示との切り替え」(node 1962:2031)。
-/// 上に「これから」のイベント、その下に参加したイベントを新しい順に並べる。
-/// 並べ方は 1 列の大きいカード（案A, node 1959:44）が既定で、右上の切り替えで
-/// 2 列のグリッドにできる。カードを押すとその日に出会った人の一覧へ。
+/// Figma「① イベント 2列だけ」(node 2050:2143)。
+/// 上に「これから」のイベント、その下に参加したイベントを新しい順に 2 列で並べる。
+/// カードを押すとそのイベントで出会った人の一覧へ。
 class EventAlbumScreen extends ConsumerWidget {
   const EventAlbumScreen({super.key});
 
@@ -31,7 +30,6 @@ class EventAlbumScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final album = ref.watch(eventAlbumProvider);
-    final grid = ref.watch(eventAlbumGridProvider);
 
     return Scaffold(
       backgroundColor: PasslyBg.defaultBg,
@@ -56,21 +54,12 @@ class EventAlbumScreen extends ConsumerWidget {
                       _UpcomingCard(event: data.upcoming!),
                       const SizedBox(height: 20),
                     ],
-                    _SectionHeader(
-                      grid: grid,
-                      onChanged: (g) =>
-                          ref.read(eventAlbumGridProvider.notifier).set(g),
-                    ),
+                    const _SectionTitle('参加したイベント'),
                     const SizedBox(height: 12),
                     if (data.past.isEmpty)
                       const _Message(text: 'まだ参加したイベントはありません')
-                    else if (grid)
-                      _EventGrid(events: data.past)
                     else
-                      for (final (i, e) in data.past.indexed) ...[
-                        if (i > 0) const SizedBox(height: 16),
-                        _LargeEventCard(event: e, index: i),
-                      ],
+                      _EventGrid(events: data.past),
                   ],
                 ),
               ),
@@ -180,157 +169,21 @@ class _UpcomingCard extends StatelessWidget {
   }
 }
 
-/// 「参加したイベント」＋ 1 列 / 2 列の切り替え。
-class _SectionHeader extends StatelessWidget {
-  final bool grid;
-  final ValueChanged<bool> onChanged;
+class _SectionTitle extends StatelessWidget {
+  final String text;
 
-  const _SectionHeader({required this.grid, required this.onChanged});
+  const _SectionTitle(this.text);
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            '参加したイベント',
-            style: TextStyle(
-              fontFamily: PasslyFont.family,
-              fontSize: 15,
-              fontWeight: PasslyFont.bold,
-              color: PasslyText.primary,
-            ),
-          ),
-        ),
-        // 白いピルが選んだ側へすべって動く（色をフェードさせると途中が灰色に見えるため）
-        Container(
-          width: 78,
-          height: 32,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: PasslyBorder.defaultBorder,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Stack(
-            children: [
-              AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                alignment: grid ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  width: 36,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: PasslyBg.surface,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  _ToggleSegment(
-                    selected: !grid,
-                    onTap: () => onChanged(false),
-                    child: const _ListIcon(),
-                  ),
-                  const Spacer(),
-                  _ToggleSegment(
-                    selected: grid,
-                    onTap: () => onChanged(true),
-                    child: const _GridIcon(),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ToggleSegment extends StatelessWidget {
-  final bool selected;
-  final VoidCallback onTap;
-  final Widget child;
-
-  const _ToggleSegment({
-    required this.selected,
-    required this.onTap,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 26,
-        alignment: Alignment.center,
-        child: IconTheme(
-          data: IconThemeData(
-            color: selected ? PasslyBrand.primary : PasslyText.tertiary,
-          ),
-          child: child,
-        ),
+    return Text(
+      text,
+      style: const TextStyle(
+        fontFamily: PasslyFont.family,
+        fontSize: 15,
+        fontWeight: PasslyFont.bold,
+        color: PasslyText.primary,
       ),
-    );
-  }
-}
-
-/// 2 列のアイコン（7×7 の四角が 4 つ）。
-class _GridIcon extends StatelessWidget {
-  const _GridIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = IconTheme.of(context).color;
-    Widget sq() => Container(
-      width: 7,
-      height: 7,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-    return SizedBox(
-      width: 16,
-      height: 16,
-      child: Wrap(
-        spacing: 2,
-        runSpacing: 2,
-        children: [sq(), sq(), sq(), sq()],
-      ),
-    );
-  }
-}
-
-/// 1 列のアイコン（横線が 3 本）。
-class _ListIcon extends StatelessWidget {
-  const _ListIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = IconTheme.of(context).color;
-    Widget bar() => Container(
-      width: 20,
-      height: 4,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        bar(),
-        const SizedBox(height: 2),
-        bar(),
-        const SizedBox(height: 2),
-        bar(),
-      ],
     );
   }
 }
@@ -373,24 +226,20 @@ class _AvatarStack extends StatelessWidget {
   final int max;
   final double size;
   final double step;
-  final bool showMore;
 
   const _AvatarStack({
     required this.users,
     required this.max,
     required this.size,
     required this.step,
-    this.showMore = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final shown = users.take(max).toList();
-    final rest = users.length - shown.length;
-    final count = shown.length + (showMore && rest > 0 ? 1 : 0);
-    if (count == 0) return const SizedBox.shrink();
+    if (shown.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      width: size + step * (count - 1),
+      width: size + step * (shown.length - 1),
       height: size,
       child: Stack(
         children: [
@@ -398,29 +247,6 @@ class _AvatarStack extends StatelessWidget {
             Positioned(
               left: step * i,
               child: _Avatar(url: u.iconUrl, size: size),
-            ),
-          if (showMore && rest > 0)
-            Positioned(
-              left: step * shown.length,
-              child: Container(
-                width: size,
-                height: size,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: PasslyBorder.defaultBorder,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: PasslyBg.surface, width: 2),
-                ),
-                child: Text(
-                  '+$rest',
-                  style: const TextStyle(
-                    fontFamily: PasslyFont.family,
-                    fontSize: 11,
-                    fontWeight: PasslyFont.bold,
-                    color: PasslyText.secondary,
-                  ),
-                ),
-              ),
             ),
         ],
       ),
@@ -488,101 +314,7 @@ class _SameTagChip extends StatelessWidget {
   }
 }
 
-/// 1 列表示の大きいカード（案A）。
-class _LargeEventCard extends StatelessWidget {
-  final EventSummary event;
-  final int index;
-
-  const _LargeEventCard({required this.event, required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    final metCount = event.metUsers.length;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _openEvent(context, event),
-      child: PressFeedback(
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: PasslyBg.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: _cardShadow,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _EventImage(event: event, index: index, height: 120),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: PasslyFont.family,
-                        fontSize: 17,
-                        fontWeight: PasslyFont.bold,
-                        color: PasslyText.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      [
-                        EventAlbumScreen.dateLabel(event.startAt),
-                        // 「会場名（住所）」は長いので会場名だけ出す
-                        if (event.location.isNotEmpty)
-                          event.location.split('（').first,
-                      ].join('・'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: PasslyFont.family,
-                        fontSize: 12,
-                        color: PasslyText.secondary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _AvatarStack(
-                          users: event.metUsers,
-                          max: 4,
-                          size: 32,
-                          step: 24,
-                          showMore: true,
-                        ),
-                        if (metCount > 0) const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '$metCount人と出会った',
-                            style: const TextStyle(
-                              fontFamily: PasslyFont.family,
-                              fontSize: 12,
-                              fontWeight: PasslyFont.medium,
-                              color: PasslyText.secondary,
-                            ),
-                          ),
-                        ),
-                        if (event.sameTagCount > 0)
-                          _SameTagChip(count: event.sameTagCount, fontSize: 11),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 2 列表示（案A3）。
+/// 参加したイベントの 2 列表示。
 class _EventGrid extends StatelessWidget {
   final List<EventSummary> events;
 

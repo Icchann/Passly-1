@@ -289,7 +289,7 @@ class _NameSection extends StatelessWidget {
 }
 
 /// 「出会ったイベント」のカード：最後にすれ違った日とイベント。
-/// 自己紹介やタグと同じ白いカードにして，プロフィールの先頭に置く。
+/// 自己紹介やタグと同じ白いカードにして，プロフィールの先頭に置く。文字は中央揃え。
 class _EncounterCard extends StatelessWidget {
   final UserModel profile;
 
@@ -306,12 +306,14 @@ class _EncounterCard extends StatelessWidget {
         border: Border.all(color: PasslyBorder.divider),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const PasslyIcon(asset: PasslyIcons.fire, size: 20),
           const SizedBox(width: 10),
-          Expanded(
+          Flexible(
             child: Text(
               _formatLastEncounter(),
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: PasslyFont.family,
                 color: AppColors.textPrimary,

@@ -43,13 +43,16 @@ class EventMetUser {
 
 /// イベント画面のデータ。
 class EventAlbum {
+  /// 今日のイベント（出会った人の数つき）。なければ null。
+  final EventSummary? today;
+
   /// いちばん近い、これから参加するイベント。なければ null。
   final EventSummary? upcoming;
 
-  /// 参加したイベント（今日まで）。新しい順。
+  /// 参加したイベント（昨日まで）。新しい順。
   final List<EventSummary> past;
 
-  const EventAlbum({required this.upcoming, required this.past});
+  const EventAlbum({this.today, required this.upcoming, required this.past});
 }
 
 /// イベント画面（旧カレンダー）のデータ。
@@ -122,9 +125,12 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
     }),
   );
 
+  // 今日のイベントは一覧ではなく上の「今日・すれ違い中」カードに出す
+  final todays = withPeople.where((e) => e.day == today).toList();
   return EventAlbum(
+    today: todays.isEmpty ? null : todays.first,
     upcoming: upcoming.isEmpty ? null : upcoming.first,
-    past: withPeople,
+    past: withPeople.where((e) => e.day != today).toList(),
   );
 });
 

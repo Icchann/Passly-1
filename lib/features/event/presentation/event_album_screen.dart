@@ -11,6 +11,7 @@ import 'package:passly/features/event/domain/event_album_notifier.dart';
 /// イベント画面（旧カレンダー）。
 ///
 /// Figma「① イベント 2列だけ」(node 2050:2143)。
+/// イベントの日は一番上に「今日・すれ違い中」のカード（node 2050:2355）。
 /// 上に「これから」のイベント、その下に参加したイベントを新しい順に 2 列で並べる。
 /// カードを押すとそのイベントで出会った人の一覧へ。
 class EventAlbumScreen extends ConsumerWidget {
@@ -50,6 +51,10 @@ class EventAlbumScreen extends ConsumerWidget {
                   loading: () => const [LoadingCardsSkeleton()],
                   error: (e, _) => [const _Message(text: 'イベントの取得に失敗しました')],
                   data: (data) => [
+                    if (data.today != null) ...[
+                      _TodayCard(event: data.today!),
+                      const SizedBox(height: 12),
+                    ],
                     if (data.upcoming != null) ...[
                       _UpcomingCard(event: data.upcoming!),
                       const SizedBox(height: 20),
@@ -164,6 +169,97 @@ class _UpcomingCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// イベント当日のカード（Figma node 2050:2355）。
+/// 「今日・すれ違い中」と今日出会った人数を出す。押すとそのイベントへ。
+class _TodayCard extends StatelessWidget {
+  final EventSummary event;
+
+  const _TodayCard({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final met = event.metUsers.length;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openEvent(context, event),
+      child: PressFeedback(
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: PasslyBg.surface,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: _cardShadow,
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 6, color: PasslyBrand.primary),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '今日・すれ違い中',
+                          style: TextStyle(
+                            fontFamily: PasslyFont.family,
+                            fontSize: 11,
+                            fontWeight: PasslyFont.bold,
+                            color: PasslyBrand.primaryDark,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${EventAlbumScreen.dateLabel(event.startAt)}${event.name}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: PasslyFont.family,
+                            fontSize: 14,
+                            fontWeight: PasslyFont.bold,
+                            color: PasslyText.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 8, right: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _sameTagBg,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$met人と出会った',
+                      style: const TextStyle(
+                        fontFamily: PasslyFont.family,
+                        fontSize: 11,
+                        fontWeight: PasslyFont.bold,
+                        color: _sameTagText,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

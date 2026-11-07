@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/common/widgets/passly_circle_button.dart';
 import 'package:passly/common/widgets/passly_icon.dart';
+import 'package:passly/common/widgets/press_feedback.dart';
 import 'package:passly/common/widgets/profile_section_card.dart';
 import 'package:passly/common/widgets/sns_link_buttons.dart';
 import 'package:passly/core/constants/app_colors.dart';
@@ -16,9 +17,11 @@ import 'package:passly/features/user/data/tech_tag_catalog.dart';
 /// 自分のプロフィール画面 (Figma「マイページ案A：相手と同じ見た目（1画面）」)。
 ///
 /// すれ違った人に見える相手プロフィールと同じ見た目にしている。
-/// 上から: カバー写真 + 右上 (友だち追加 / 設定) + アバター +
-/// 名前 / 組織チップ + SNS ボタン + 自己紹介 / タグ（白いカード） +
-/// 「すれ違った人にもこの見た目で表示されます」+「プロフィールを編集」。
+/// 上から: カバー写真 + 右上（「編集」＋「…」メニュー）+ アバター +
+/// 名前 / 組織チップ + SNS ボタン + 自己紹介 / タグ（白いカード）。
+///
+/// 編集ボタンは開いてすぐ見えるよう右上に置く（下にあるとスクロールが要った）。
+/// QR 交換と設定は「…」のメニューにまとめて，右上のボタンを 2 つに減らす。
 ///
 /// 編集は別画面 (/mypage/edit, [ProfileEditScreen]) で行う。
 class MyPageScreen extends ConsumerWidget {
@@ -70,19 +73,13 @@ class MyPageScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: _TechTagSection(techStack: user.techStack),
                 ),
-                const SizedBox(height: 28),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 21),
-                  child: _EditProfileButton(
-                    onTap: () => context.push('/mypage/edit'),
-                  ),
-                ),
               ],
             ),
           ),
-          // カバー写真の上に (QR / 友だち追加) + 歯車。
+          // カバー写真の上に「編集」＋「…」（QR 交換・設定）。
           SafeArea(
             child: _FloatingHeader(
+              onEdit: () => context.push('/mypage/edit'),
               onOpenSettings: () => context.push('/settings'),
               onOpenQr: () => context.push('/mypage/qr'),
             ),
@@ -153,42 +150,193 @@ class _CoverAndAvatar extends StatelessWidget {
   }
 }
 
-/// Figma のヘッダー (node 1300:1904) 準拠: カバー写真の上に配置する
-/// 透明ヘッダー。右端に「友だち追加 (QR) + 歯車」を並べる。
+/// カバー写真の上の右上ボタン：「✏ 編集」と「…」。
 ///
-/// マイページはボトムナビタブから開くため戻る先が無く Figma の左上戻る
-/// ボタンは撤去済み。代わりに歯車ボタンから設定画面へ遷移する。
+/// 「…」を押すと QR でプロフィール交換・設定のメニューが開く。
+/// マイページはボトムナビタブから開くため戻るボタンは置かない。
 class _FloatingHeader extends StatelessWidget {
+  final VoidCallback onEdit;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenQr;
 
-  const _FloatingHeader({required this.onOpenSettings, required this.onOpenQr});
+  const _FloatingHeader({
+    required this.onEdit,
+    required this.onOpenSettings,
+    required this.onOpenQr,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // 右端に「友だち追加 (QR) + 歯車」を横並びに配置。
-    // 編集は画面下の「プロフィールを編集」ボタンから入る。
-    // 他画面のヘッダー (PasslyHeader) と横方向の位置を揃えるため
-    // 左右 20 のパディングに統一する。
-    // ボタンは白い丸なので、カバー写真の明るさに関係なくアイコンは濃い色。
+    // 他画面のヘッダー (PasslyHeader) と横方向の位置を揃えるため左右 20。
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          PasslyCircleButton(
-            asset: PasslyIcons.addFriend,
-            iconSize: 20,
-            onTap: onOpenQr,
-          ),
-          const SizedBox(width: 8),
-          PasslyCircleButton(
-            asset: PasslyIcons.settings,
-            iconSize: 24,
-            onTap: onOpenSettings,
-          ),
+          _EditPill(onTap: onEdit),
+          const SizedBox(width: 4),
+          _MoreMenuButton(onOpenQr: onOpenQr, onOpenSettings: onOpenSettings),
         ],
       ),
+    );
+  }
+}
+
+/// 白いピルの「✏ 編集」ボタン。丸ボタン（直径 30）と高さを揃える。
+class _EditPill extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _EditPill({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'プロフィールを編集',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: PressFeedback(
+          // タップ範囲は丸ボタンと同じ高さ 40 にする
+          child: SizedBox(
+            height: 40,
+            child: Center(
+              child: Container(
+                height: PasslyCircleButton.diameter,
+                padding: const EdgeInsets.only(left: 10, right: 12),
+                decoration: const ShapeDecoration(
+                  color: PasslyBg.surface,
+                  shape: StadiumBorder(),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PasslyIcon(
+                      asset: PasslyIcons.edit,
+                      size: 15,
+                      color: PasslyText.primary,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      '編集',
+                      style: TextStyle(
+                        fontFamily: PasslyFont.family,
+                        color: PasslyText.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _MoreAction { qr, settings }
+
+/// 「…」ボタン。押すと QR 交換・設定のメニューを出す。
+class _MoreMenuButton extends StatelessWidget {
+  final VoidCallback onOpenQr;
+  final VoidCallback onOpenSettings;
+
+  const _MoreMenuButton({required this.onOpenQr, required this.onOpenSettings});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_MoreAction>(
+      tooltip: 'その他',
+      offset: const Offset(0, 44),
+      color: PasslyBg.surface,
+      elevation: 6,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      onSelected: (action) => switch (action) {
+        _MoreAction.qr => onOpenQr(),
+        _MoreAction.settings => onOpenSettings(),
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: _MoreAction.qr,
+          child: _MenuRow(
+            asset: PasslyIcons.addFriend,
+            iconSize: 18,
+            label: 'QRでプロフィール交換',
+          ),
+        ),
+        PopupMenuItem(
+          value: _MoreAction.settings,
+          child: _MenuRow(
+            asset: PasslyIcons.settings,
+            iconSize: 20,
+            label: '設定',
+          ),
+        ),
+      ],
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Center(
+          child: Container(
+            width: PasslyCircleButton.diameter,
+            height: PasslyCircleButton.diameter,
+            decoration: const BoxDecoration(
+              color: PasslyBg.surface,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.more_horiz,
+              size: 20,
+              color: PasslyText.primary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  final String asset;
+  final double iconSize;
+  final String label;
+
+  const _MenuRow({
+    required this.asset,
+    required this.iconSize,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 22,
+          child: Center(
+            child: PasslyIcon(
+              asset: asset,
+              size: iconSize,
+              color: PasslyText.primary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: PasslyFont.family,
+            color: PasslyText.primary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -323,93 +471,6 @@ class _TagWrap extends StatelessWidget {
         runSpacing: 12,
         children: [for (final tag in tags) LabeledTagSticker(tag: tag)],
       ),
-    );
-  }
-}
-
-/// 画面下の「すれ違った人にもこの見た目で表示されます」＋「プロフィールを編集」。
-///
-/// マイページは相手プロフィールと同じ見た目にしているので，
-/// 切り替えなしで「相手にはこう見える」ことを 1 行で伝える。
-class _EditProfileButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _EditProfileButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.visibility_outlined,
-              size: 16,
-              color: PasslyText.secondary,
-            ),
-            SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                'すれ違った人にもこの見た目で表示されます',
-                style: TextStyle(
-                  fontFamily: PasslyFont.family,
-                  color: PasslyText.secondary,
-                  fontSize: 12,
-                  fontWeight: PasslyFont.regular,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        // 影は丸い形のまま外側に描き，ボタン本体は Material で丸く切り抜く。
-        // （Ink に boxShadow を付けると実機で四角い影が出ていた）
-        DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(100),
-            boxShadow: [
-              BoxShadow(
-                color: PasslyBrand.primary.withValues(alpha: 0.28),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Material(
-            color: PasslyBrand.primaryLight,
-            shape: const StadiumBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onTap,
-              child: SizedBox(
-                height: 50,
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    PasslyIcon(
-                      asset: PasslyIcons.edit,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'プロフィールを編集',
-                      style: TextStyle(
-                        fontFamily: PasslyFont.family,
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

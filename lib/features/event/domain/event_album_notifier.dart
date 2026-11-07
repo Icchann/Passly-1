@@ -54,8 +54,9 @@ class EventAlbum {
 
 /// イベント画面（旧カレンダー）のデータ。
 ///
-/// GET /events からイベントを取り、今日までのものは GET /users/:id/calendar/daily
-/// でその日に出会った人を取って、人数と同じタグの人数を出す。
+/// プロフィールの connpass ユーザー名で参加イベント（GET /users/:id/connpass-events）
+/// を取り、今日までのものは GET /users/:id/calendar/daily でその日に出会った人を
+/// 取って、人数と同じタグの人数を出す。
 final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
   final me = ref.watch(authNotifierProvider).value;
   if (me == null) return const EventAlbum(upcoming: null, past: []);
@@ -65,7 +66,7 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
   final today = DateTime(now.year, now.month, now.day);
 
   final events = <EventSummary>[];
-  for (final raw in await repo.fetchAllEvents()) {
+  for (final raw in await repo.fetchConnpassEvents(me.id)) {
     final startUtc = DateTime.tryParse(raw['start_at']?.toString() ?? '');
     if (startUtc == null) continue;
     events.add(
@@ -91,7 +92,9 @@ final eventAlbumProvider = FutureProvider<EventAlbum>((ref) async {
           userId: me.id,
           dateString: eventDateParam(e.day),
         );
-        final users = (data['users'] as List? ?? const [])
+        // 実バックエンドは encounter_users、デモは users で返す。
+        final users =
+            (data['users'] as List? ?? data['encounter_users'] as List? ?? const [])
             .whereType<Map>()
             .toList();
         return EventSummary(

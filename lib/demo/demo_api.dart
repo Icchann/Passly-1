@@ -73,6 +73,8 @@ class DemoApi {
         return <String, dynamic>{};
       case ['events'] when method == 'GET':
         return [for (final e in _events) _eventJson(e)];
+      case ['users', _, 'connpass-events'] when method == 'GET':
+        return [for (final e in _events) _eventJson(e)];
       case ['events', final id] when method == 'GET':
         final event = _event(int.tryParse(id));
         return event == null ? null : _eventDetailJson(event);

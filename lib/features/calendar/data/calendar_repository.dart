@@ -95,6 +95,15 @@ class CalendarRepository {
     return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  /// プロフィールの connpass ユーザー名で、参加した・参加予定のイベントを返す
+  /// （GET /users/:id/connpass-events）。ユーザー名が未設定なら空。
+  Future<List<Map<String, dynamic>>> fetchConnpassEvents(String userId) async {
+    final response = await _dio.get('/users/$userId/connpass-events');
+    final data = response.data;
+    if (data is! List) return const [];
+    return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
   /// イベントがある日付（日本時間の年月日）をすべて返す（GET /events）。
   /// 週表示の目印に使う。月をまたぐ週でも出せるよう、月で絞らない。
   Future<Set<DateTime>> fetchEventDates() async {

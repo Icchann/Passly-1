@@ -19,7 +19,7 @@ EventSummary _event(String name, DateTime day, {int met = 3}) => EventSummary(
 
 final _album = EventAlbum(
   today: _event('MEET STAGE とても長いイベントの名前が入ります', DateTime(2026, 11, 8), met: 5),
-  upcoming: _event('技育展2026 本選', DateTime(2026, 11, 28)),
+  upcoming: [_event('技育展2026 本選', DateTime(2026, 11, 28))],
   past: [
     _event('Passly 体験会', DateTime(2026, 10, 30), met: 12),
     _event('Matsuriba 夏祭り とても長い名前の夏祭り', DateTime(2026, 10, 18)),
@@ -35,11 +35,19 @@ final _tech = NextEvent(
 
 final _favorites = [
   FavoriteNextEvent(
+    event: NextEvent(
+      title: 'Flutter 勉強会 名古屋',
+      startedAt: DateTime.utc(2026, 11, 15, 3),
+      url: 'https://example.com/b',
+    ),
+    users: const [UserModel(id: 'm', name: 'みなと')],
+  ),
+  FavoriteNextEvent(
     event: _tech,
     users: const [
       UserModel(id: 'a', name: 'シスにゃん'),
       UserModel(id: 'b', name: 'るい'),
-      UserModel(id: 'c', name: 'とても長い名前のたろうさん'),
+      UserModel(id: 'c', name: 'とても長い名前のたろう'),
       UserModel(id: 'd', name: 'はなこ'),
     ],
   ),
@@ -84,9 +92,19 @@ void main() {
         await tester.pump();
         await tester.pump();
         expect(tester.takeException(), isNull);
-        expect(find.text('今日・すれ違い中'), findsOneWidget);
+        // 参加中・自分の予定・お気に入りの人の予定がそれぞれのラベルで出る
+        expect(find.text('これから'), findsOneWidget);
+        expect(find.text('参加中'), findsOneWidget);
         expect(find.text('5人と出会った'), findsOneWidget);
-        expect(find.text('お気に入りの人の次のイベント'), findsOneWidget);
+        expect(find.text('参加予定'), findsOneWidget);
+        expect(find.text('参加してみる'), findsOneWidget);
+        expect(find.text('★ お気に入り'), findsOneWidget);
+        // 自分の予定と同じイベントに行くお気に入りの人は，自分の予定のカードにまとめる
+        expect(
+          find.text('シスにゃんさん，るいさん，とても長い名前のたろうさん，はなこさんが参加予定'),
+          findsOneWidget,
+        );
+        expect(find.text('みなとさんが参加予定'), findsOneWidget);
         // 1 列 / 2 列の切り替えはもうない
         expect(find.text('Passly 体験会'), findsOneWidget);
 

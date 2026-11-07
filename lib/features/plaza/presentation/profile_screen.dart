@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/common/widgets/encounter_meta_pill.dart';
 import 'package:passly/common/widgets/loading_card_skeleton.dart';
+import 'package:passly/common/widgets/sns_link_buttons.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
@@ -98,6 +99,13 @@ class _ProfileBody extends StatelessWidget {
           Center(
             child: _FavoriteButton(userId: userId, profile: profile),
           ),
+          if (snsLinksOf(profile).isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 21),
+              child: SnsLinkButtons(profile: profile),
+            ),
+          ],
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -122,11 +130,6 @@ class _ProfileBody extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: _NextEventSection(userId: userId, profile: profile),
-          ),
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: _LinkSection(profile: profile),
           ),
         ],
       ),
@@ -765,158 +768,9 @@ class _TechTagSection extends StatelessWidget {
   }
 }
 
-class _LinkSection extends StatelessWidget {
-  final UserModel profile;
-
-  const _LinkSection({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    final links = <_LinkEntry>[
-      if (profile.twitterUrl.isNotEmpty)
-        _LinkEntry(
-          label: 'X でフォロー',
-          url: _normalizeTwitterUrl(profile.twitterUrl),
-        ),
-      if (profile.githubUrl.isNotEmpty)
-        _LinkEntry(
-          label: 'GitHub を見る',
-          url: _normalizeGitHubUrl(profile.githubUrl),
-        ),
-      if (profile.portfolioUrl.isNotEmpty)
-        _LinkEntry(label: 'ポートフォリオ', url: profile.portfolioUrl),
-      if (profile.connpassUrl.isNotEmpty)
-        _LinkEntry(
-          label: 'connpass を見る',
-          url: _normalizeConnpassUrl(profile.connpassUrl),
-        ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 6),
-          child: _SectionHeading('LINK'),
-        ),
-        const SizedBox(height: 12),
-        if (links.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
-              '未設定',
-              style: TextStyle(
-                color: AppColors.textDisabled,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              const gap = 12.0;
-              final width = (constraints.maxWidth - gap) / 2;
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: [
-                  for (int i = 0; i < links.length; i++)
-                    SizedBox(
-                      width: width,
-                      child: _SnsButton(
-                        label: links[i].label,
-                        primary: i == 0,
-                        onTap: () => _launchUrl(links[i].url),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-      ],
-    );
-  }
-}
-
-class _LinkEntry {
-  final String label;
-  final String url;
-
-  const _LinkEntry({required this.label, required this.url});
-}
-
-/// SNS ボタン。先頭だけ黒塗り，ほかは白地に枠線。
-class _SnsButton extends StatelessWidget {
-  final String label;
-  final bool primary;
-  final VoidCallback onTap;
-
-  const _SnsButton({
-    required this.label,
-    required this.primary,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: primary ? PasslyText.primary : AppColors.backgroundWhite,
-      shape: StadiumBorder(
-        side: primary
-            ? BorderSide.none
-            : const BorderSide(color: PasslyBorder.strong),
-      ),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          height: 48,
-          child: Center(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: primary ? Colors.white : AppColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 Future<void> _launchUrl(String url) async {
   if (url.isEmpty) return;
   final uri = Uri.tryParse(url);
   if (uri == null) return;
   await launchUrl(uri, mode: LaunchMode.externalApplication);
-}
-
-String _normalizeTwitterUrl(String raw) {
-  final value = raw.trim();
-  if (value.isEmpty) return '';
-  if (value.startsWith('http://') || value.startsWith('https://')) return value;
-  final handle = value.startsWith('@') ? value.substring(1) : value;
-  return 'https://x.com/$handle';
-}
-
-String _normalizeGitHubUrl(String raw) {
-  final value = raw.trim();
-  if (value.isEmpty) return '';
-  if (value.startsWith('http://') || value.startsWith('https://')) return value;
-  if (value.startsWith('github.com/')) return 'https://$value';
-  return 'https://github.com/$value';
-}
-
-String _normalizeConnpassUrl(String raw) {
-  final value = raw.trim();
-  if (value.isEmpty) return '';
-  if (value.startsWith('http://') || value.startsWith('https://')) return value;
-  final username = value.startsWith('@') ? value.substring(1) : value;
-  return 'https://connpass.com/user/$username/';
 }

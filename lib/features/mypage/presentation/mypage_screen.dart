@@ -1,35 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:passly/common/widgets/tag_sticker.dart';
 import 'package:passly/common/widgets/passly_circle_button.dart';
 import 'package:passly/common/widgets/passly_icon.dart';
+import 'package:passly/common/widgets/sns_link_buttons.dart';
 import 'package:passly/core/constants/app_colors.dart';
 import 'package:passly/core/constants/passly_tokens.dart';
 import 'package:passly/features/auth/domain/auth_notifier.dart';
 import 'package:passly/features/mypage/presentation/widgets/profile_images.dart';
 import 'package:passly/features/user/data/tech_tag_catalog.dart';
-import 'package:passly/features/user/domain/user_model.dart';
 
 /// 自分のプロフィール画面 (Figma「マイページ案A：相手と同じ見た目（1画面）」)。
 ///
 /// すれ違った人に見える相手プロフィールと同じ見た目にしている。
 /// 上から: カバー写真 + 右上 (友だち追加 / 設定) + アバター +
-/// 名前 / 一言 / 組織チップ + ABOUT / TECH TAG / LINK +
+/// 名前 / 一言 / 組織チップ + SNS ボタン + ABOUT / TECH TAG +
 /// 「すれ違った人にもこの見た目で表示されます」+「プロフィールを編集」。
 ///
 /// 編集は別画面 (/mypage/edit, [ProfileEditScreen]) で行う。
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});
-
-  Future<void> _launchExternalUrl(String url) async {
-    if (url.isEmpty) return;
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,6 +56,13 @@ class MyPageScreen extends ConsumerWidget {
                   oneWord: user.oneWord,
                   affiliation: user.affiliation,
                 ),
+                if (snsLinksOf(user).isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 21),
+                    child: SnsLinkButtons(profile: user),
+                  ),
+                ],
                 const SizedBox(height: PasslySpace.s24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 21),
@@ -73,14 +72,6 @@ class MyPageScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 21),
                   child: _TechTagSection(techStack: user.techStack),
-                ),
-                const SizedBox(height: PasslySpace.s24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 21),
-                  child: _LinkSection(
-                    profile: user,
-                    onOpen: _launchExternalUrl,
-                  ),
                 ),
                 const SizedBox(height: 28),
                 Padding(
@@ -363,157 +354,6 @@ class _TagWrap extends StatelessWidget {
         spacing: 6,
         runSpacing: 12,
         children: [for (final tag in tags) LabeledTagSticker(tag: tag)],
-      ),
-    );
-  }
-}
-
-class _LinkSection extends StatelessWidget {
-  final UserModel profile;
-  final Future<void> Function(String url) onOpen;
-
-  const _LinkSection({required this.profile, required this.onOpen});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionHeading('LINK'),
-        const SizedBox(height: PasslySpace.s12),
-        _buildButtons(),
-      ],
-    );
-  }
-
-  /// 相手プロフィールと同じ SNS ボタン（先頭だけ黒塗り，2 列）。
-  /// すれ違った人に見えるのと同じ文言にしている。
-  Widget _buildButtons() {
-    final links = <_LinkEntry>[
-      if (profile.twitterUrl.isNotEmpty)
-        _LinkEntry(
-          label: 'X でフォロー',
-          url: _normalizeTwitterUrl(profile.twitterUrl),
-        ),
-      if (profile.githubUrl.isNotEmpty)
-        _LinkEntry(
-          label: 'GitHub を見る',
-          url: _normalizeGitHubUrl(profile.githubUrl),
-        ),
-      if (profile.portfolioUrl.isNotEmpty)
-        _LinkEntry(label: 'ポートフォリオ', url: profile.portfolioUrl),
-      if (profile.connpassUrl.isNotEmpty)
-        _LinkEntry(
-          label: 'connpass を見る',
-          url: _normalizeConnpassUrl(profile.connpassUrl),
-        ),
-    ];
-    if (links.isEmpty) {
-      return const Text(
-        '未設定',
-        style: TextStyle(
-          fontFamily: PasslyFont.family,
-          color: AppColors.textDisabled,
-          fontSize: 12,
-          fontWeight: PasslyFont.medium,
-        ),
-      );
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = 12.0;
-        final width = (constraints.maxWidth - gap) / 2;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (int i = 0; i < links.length; i++)
-              SizedBox(
-                width: width,
-                child: _SnsButton(
-                  label: links[i].label,
-                  primary: i == 0,
-                  onTap: () => onOpen(links[i].url),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  static String _normalizeTwitterUrl(String raw) {
-    final v = raw.trim();
-    if (v.isEmpty) return '';
-    if (v.startsWith('http://') || v.startsWith('https://')) return v;
-    final handle = v.startsWith('@') ? v.substring(1) : v;
-    return 'https://x.com/$handle';
-  }
-
-  static String _normalizeGitHubUrl(String raw) {
-    final v = raw.trim();
-    if (v.isEmpty) return '';
-    if (v.startsWith('http://') || v.startsWith('https://')) return v;
-    if (v.startsWith('github.com/')) return 'https://$v';
-    return 'https://github.com/$v';
-  }
-
-  static String _normalizeConnpassUrl(String raw) {
-    final v = raw.trim();
-    if (v.isEmpty) return '';
-    if (v.startsWith('http://') || v.startsWith('https://')) return v;
-    final username = v.startsWith('@') ? v.substring(1) : v;
-    return 'https://connpass.com/user/$username/';
-  }
-}
-
-class _LinkEntry {
-  final String label;
-  final String url;
-
-  const _LinkEntry({required this.label, required this.url});
-}
-
-/// SNS ボタン。先頭だけ黒塗り，ほかは白地に枠線（相手プロフィールと同じ）。
-class _SnsButton extends StatelessWidget {
-  final String label;
-  final bool primary;
-  final VoidCallback onTap;
-
-  const _SnsButton({
-    required this.label,
-    required this.primary,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: primary ? PasslyText.primary : PasslyBg.surface,
-      shape: StadiumBorder(
-        side: primary
-            ? BorderSide.none
-            : const BorderSide(color: PasslyBorder.strong),
-      ),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          height: 48,
-          child: Center(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: PasslyFont.family,
-                color: primary ? Colors.white : AppColors.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
